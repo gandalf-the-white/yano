@@ -1,6 +1,7 @@
 (defpackage :yano
-  (:use :cl :djula)
-  (:import-from :easy-routes #:easy-routes-acceptor)
+  (:use :cl)
+  (:import-from :djula #:render-template*)
+  (:import-from :easy-routes #:easy-routes-acceptor #:defroute)
   (:export
    :start-server
    :stop-server))

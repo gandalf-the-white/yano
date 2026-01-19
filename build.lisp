@@ -6,20 +6,29 @@
       (error "Quicklisp not found. Please install Quicklisp first."))
     (load quicklisp-init)))
 
-;; Charger les dépendances et le système
+;; Load system and dependencies
 (ql:quickload '(:hunchentoot :easy-routes :djula))
 (push (uiop:getcwd) asdf:*central-registry*)
 (ql:quickload "yano")
 
-;; Fonction principale de l'application
+;; Create the directory if not
+(defun ensure-build-dir ()
+  (let ((build-dir (merge-pathnames "build/" (uiop:getcwd))))
+    (unless (uiop:directory-exists-p build-dir)
+      (ensure-directories-exist build-dir)
+      (format t "'build' Directory created.~%"))))
+
+;; Main function
 (defun main ()
   (let ((*package* (find-package :yano)))
     (yano::start-server)
     (sleep most-positive-fixnum)))
 
-;; Sauvegarder le binaire
+(ensure-build-dir)
+
+;; Save binary
 (sb-ext:save-lisp-and-die
- "yano-bin"
+ (merge-pathnames "build/yano-bin" (uiop:getcwd))
  :toplevel #'main
  :executable t
  :compression t)

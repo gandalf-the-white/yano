@@ -8,5 +8,7 @@
   :components ((:module "src"
                 :components
                 ((:file "package")
+                 (:file "tools")
+                 (:file "routes")
                  (:file "main"))))
   :description "")
