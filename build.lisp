@@ -31,4 +31,4 @@
  (merge-pathnames "build/yano-bin" (uiop:getcwd))
  :toplevel #'main
  :executable t
- :compression t)
+ :compression nil)
