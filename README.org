@@ -4,81 +4,17 @@
 * Introduction
 The idea behind this project is to create and deploy a simple interface based on LISP on Kubernetes. Completely crazy? Probably ;-) 
 The second idea is simply to convert my /go-video-api/ on LISP, so...
+* Podman
+Just to be true to myself, I'll use /podman/. Let's start the virtual machine.
+#+begin_src shell
+$ podman machime start
+$ podman info
+#+end_src
 * Process
 ** Run
 To test the application without stress, I created this smart script.
-#+begin_src emacs-lisp
-#!/usr/bin/env sbcl --script
-
-;;; 1. Load quicklisp
-(eval-when (:execute)
-  (let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
-    (unless (probe-file quicklisp-init)
-      (error "Quicklisp not found. Please install Quicklisp first."))
-    (load quicklisp-init)))
-
-;;; 2. Load dependencies
-(ql:quickload '(:hunchentoot :easy-routes :djula))
-(push (uiop:getcwd) asdf:*central-registry*)
-
-;;; 3. Load the system
-(ql:quickload "yano")
-
-;;; 4. Start the server
-(let ((port (or (and (uiop:command-line-arguments)
-                     (parse-integer (first (uiop:command-line-arguments)) :junk-allowed t))
-                8899)))
-  (handler-case
-      (progn
-        (yano:start-server :port port)
-        ;; Wait signal to stop (Ctrl+C)
-        (loop (sleep 1)))
-    (error (e)
-      (format *error-output* "~&Error: ~a~&" e)
-      (sb-ext:exit :code 1))))
-#+end_src
 ** Build Script explanation
 Just an overview of the script to build the binary
-#+begin_src emacs-lisp
-#!/usr/bin/env sbcl --script
-
-;; Load the quicklisp environment
-(eval-when (:execute)
-  (let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp" (user-homedir-pathname))))
-    (unless (probe-file quicklisp-init)
-      (error "Quicklisp not found. Please install Quicklisp first."))
-    (load quicklisp-init)))
-
-;; Load system and dependencies
-;; and include the working directory
-(ql:quickload '(:hunchentoot :easy-routes :djula))
-(push (uiop:getcwd) asdf:*central-registry*)
-(ql:quickload "yano")
-
-;; Create the directory if not
-;; Pretty simple to understand
-(defun ensure-build-dir ()
-  (let ((build-dir (merge-pathnames "build/" (uiop:getcwd))))
-    (unless (uiop:directory-exists-p build-dir)
-      (ensure-directories-exist build-dir)
-      (format t "'build' Directory created.~%"))))
-
-;; Main function
-(defun main ()
-  (let ((*package* (find-package :yano)))
-    (yano::start-server)
-    (sleep most-positive-fixnum)))
-
-;; We test and create if not
-(ensure-build-dir)
-
-;; Save binary in the build directory
-(sb-ext:save-lisp-and-die
- (merge-pathnames "build/yano-bin" (uiop:getcwd))
- :toplevel #'main
- :executable t
- :compression t)
-#+end_src
 ** How to Build
 To simplify the process, I proposed to build in the first step /yano-bin/ in order to push the image as simple as possible through a basic /Dockerfile/.
 #+begin_src shell

@@ -5,7 +5,7 @@ FROM --platform=linux/amd64 debian:12-slim AS build-stage
 ENV DEBIAN_FRONTEND=noninteractive
 ENV SBCL_VERSION=2.3.9
 
-# Dépendances système
+# Dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Installer SBCL
+# Install SBCL
 RUN curl -L https://downloads.sourceforge.net/project/sbcl/sbcl/${SBCL_VERSION}/sbcl-${SBCL_VERSION}-x86-64-linux-binary.tar.bz2 \
     | tar -xj \
  && cd sbcl-${SBCL_VERSION}-x86-64-linux \
@@ -22,7 +22,7 @@ RUN curl -L https://downloads.sourceforge.net/project/sbcl/sbcl/${SBCL_VERSION}/
  && cd / \
  && rm -rf sbcl-${SBCL_VERSION}-x86-64-linux
 
-# Installer Quicklisp
+# Install Quicklisp
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp \
  && sbcl --non-interactive \
     --load quicklisp.lisp \
@@ -31,11 +31,11 @@ RUN curl -O https://beta.quicklisp.org/quicklisp.lisp \
     --eval '(quit)' \
  && rm quicklisp.lisp
 
-# Copier le projet
+# Copy project
 WORKDIR /app
 COPY . /app
 
-# Construire le binaire
+# Build binary
 RUN sbcl --script build.lisp
 
 FROM --platform=linux/amd64 gcr.io/distroless/base-debian12
