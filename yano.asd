@@ -4,11 +4,28 @@
   :license "GPL-3.0 license"
   :depends-on (:hunchentoot
                :easy-routes
-               :djula)
+               :djula
+               :drakma
+               :babel
+               :jonathan)
+  :serial t
   :components ((:module "src"
                 :components
-                ((:file "package")
-                 (:file "tools")
-                 (:file "routes")
-                 (:file "main"))))
+                ((:module "frontend"
+                  :components
+                  ((:file "package")
+                   (:file "models")
+                   (:file "routes")
+                   (:file "server")))
+                 (:module "proxy"
+                  :components
+                  ((:file "package")
+                   (:file "handle")
+                   (:file "server")))
+                 (:module "backend"
+                  :components
+                  ((:file "package")
+                   (:file "models")
+                   (:file "routes")
+                   (:file "server"))))))
   :description "")

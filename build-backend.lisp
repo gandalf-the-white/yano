@@ -7,9 +7,9 @@
     (load quicklisp-init)))
 
 ;; Load system and dependencies
-(ql:quickload '(:hunchentoot :easy-routes :djula))
+;; (ql:quickload '(:hunchentoot :easy-routes :djula :drakma :babel :jonathan))
 (push (uiop:getcwd) asdf:*central-registry*)
-(ql:quickload "yano")
+(ql:quickload "yano-backend")
 
 ;; Create the directory if not
 (defun ensure-build-dir ()
@@ -18,17 +18,17 @@
       (ensure-directories-exist build-dir)
       (format t "'build' Directory created.~%"))))
 
-;; Main function
+;; Backend Main function
 (defun main ()
-  (let ((*package* (find-package :yano)))
-    (yano::start-server)
+  (let ((*package* (find-package :yano/backend)))
+    (yano/backend::start-server)
     (sleep most-positive-fixnum)))
 
 (ensure-build-dir)
 
 ;; Save binary
 (sb-ext:save-lisp-and-die
- (merge-pathnames "build/yano-bin" (uiop:getcwd))
+ (merge-pathnames "build/yano-backend-bin" (uiop:getcwd))
  :toplevel #'main
  :executable t
  :compression nil)

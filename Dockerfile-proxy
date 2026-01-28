@@ -35,15 +35,16 @@ RUN curl -O https://beta.quicklisp.org/quicklisp.lisp \
 WORKDIR /app
 COPY . /app
 
+
 # Build binary
-RUN sbcl --script build.lisp
+RUN sbcl --script build-proxy.lisp
 
 FROM --platform=linux/amd64 gcr.io/distroless/base-debian12
 
-ENV PORT=4242
-
 WORKDIR /app
-COPY --from=build-stage /app/build/yano-bin /app/yano-bin
+# WORKDIR /app/templates
+COPY --from=build-stage /app/build/yano-proxy-bin /app/yano-proxy-bin
+# COPY templates/. /app/templates
+COPY --exclude=static --exclude=templates . /app
 
-EXPOSE $PORT
-ENTRYPOINT ["/app/yano-bin"]
+ENTRYPOINT ["/app/yano-proxy-bin"]

@@ -5,7 +5,7 @@
 The idea behind this project is to create and deploy a simple interface based on LISP on Kubernetes. Completely crazy? Probably ;-) 
 The second idea is simply to convert my /go-video-api/ on LISP, so...
 * Podman
-Just to be true to myself, I'll use /podman/. Let's start the virtual machine.
+Just to be true to myself, I'll use /podman/. Now, let's start the virtual machine.
 #+begin_src shell
 $ podman machime start
 $ podman info
@@ -27,15 +27,27 @@ We don't forget to select the right architecture (Linux/AMD), hence the need to 
 ** Build
 Pretty simple,
 #+begin_src shell
-$ podman build -t $(USER)/yano-bin:latest .
+$ podman build -t gandalfthewhite/yano-bin:latest .
+$ podman push localhost/gandalfthewhite/yano-bin:latest  docker.io/gandalfthewhite/yano-bin:latest
 #+end_src
 ** Push
 It's time to push our new image
 #+begin_src shell
-$ podman push $(USER)/yano-bin:latest 
+$ podman push gandalfthewhite/yano-bin:latest 
 #+end_src
-Write your personal name ($USER) obviously. (ex: gandalfthewhite/yano-bin:latest, just for me)
+Write your personal name obviously. (ex: gandalfthewhite/yano-bin:latest, just for me)
 * Micro-service
 ** Manifest
-Actually, the /manifest/ is normal without any difference, we just have to select the right image.
-** Deploy
+To deploy, quite simple, so we just have to understand the order. So. let's get started.
+I propose to cut or dissociate the different manifests according to their role.
++ namespace (namespace.yml)
++ deployment (deployment.yml)
++ gateway (gateway.yml)
++ virtual service (virtualservice.yml)
+Much better to understand the architecture of the cloud native explanation.
+#+begin_src shell
+$ kubectl apply -f namespace.yml
+$ kubectl apply -f deployment.yml
+$ kubectl apply -f gateway.yml
+$ kubectl apply -f virtualservice.yml
+#+end_src

@@ -1,0 +1,54 @@
+{% extends "base.html" %} {% block title %} {{ video.title }} {% endblock %} {%
+block head %}
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+/>
+
+<style>
+    body {
+        text-align: center;
+    }
+
+    video {
+        width: 80%;
+        max-width: 800px;
+        margin-top: 20px;
+        background: black;
+    }
+    main.container {
+        padding-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100vh;
+    }
+</style>
+{% endblock %} {% block content %}
+<h1>{{ video.title }}</h1>
+
+<video id="video" controls></video>
+{% endblock %} {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<script>
+    (function () {
+        const video = document.getElementById("video");
+        const videoSrc = "{{ video.hls-url }}";
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                video.play();
+            });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = videoSrc;
+            video.addEventListener("loadedmetadata", function () {
+                video.play();
+            });
+        }
+    })();
+</script>
+{% endblock %}

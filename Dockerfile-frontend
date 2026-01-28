@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1
+
+FROM --platform=linux/amd64 debian:12-slim AS build-stage
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV SBCL_VERSION=2.3.9
+
+# Dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install SBCL
+RUN curl -L https://downloads.sourceforge.net/project/sbcl/sbcl/${SBCL_VERSION}/sbcl-${SBCL_VERSION}-x86-64-linux-binary.tar.bz2 \
+    | tar -xj \
+ && cd sbcl-${SBCL_VERSION}-x86-64-linux \
+ && sh install.sh \
+ && cd / \
+ && rm -rf sbcl-${SBCL_VERSION}-x86-64-linux
+
+# Install Quicklisp
+RUN curl -O https://beta.quicklisp.org/quicklisp.lisp \
+ && sbcl --non-interactive \
+    --load quicklisp.lisp \
+    --eval '(quicklisp-quickstart:install)' \
+    --eval '(ql-util:without-prompting (ql:add-to-init-file))' \
+    --eval '(quit)' \
+ && rm quicklisp.lisp
+
+# Copy project
+WORKDIR /app
+COPY . /app
+
+
+# Build binary
+RUN sbcl --script build-frontend.lisp
+
+FROM --platform=linux/amd64 gcr.io/distroless/base-debian12
+
+WORKDIR /app
+# WORKDIR /app/templates
+COPY --from=build-stage /app/build/yano-frontend-bin /app/yano-frontend-bin
+# COPY templates/. /app/templates
+COPY . /app
+
+ENTRYPOINT ["/app/yano-frontend-bin"]

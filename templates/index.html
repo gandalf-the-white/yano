@@ -1,15 +1,14 @@
-<!doctype html>
-<html>
-<head>
-  <link
-    rel=\"stylesheet\"
-    href=\"https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css\">
-  <link rel="shortcut icon" href="#" />
-  <title>Lisp web app </title>
-</head>
-<body class=\"container\">
-  <h1>Bienvenue sur
-    <a href=/videos> Yano !</a>
-  </h1>
-</body>
-</html>
+{% extends "base.html" %} {% block title %}Video list{% endblock %} {% block
+content %}
+<h1 class="glow">Videos available</h1>
+
+<ul>
+  {% for video in videos %}
+  <li>
+    <a href="/video/{{ video.id }}"> {{ video.title }} </a>
+  </li>
+  {% empty %}
+  <li>No videos available</li>
+  {% endfor %}
+</ul>
+{% endblock %}
