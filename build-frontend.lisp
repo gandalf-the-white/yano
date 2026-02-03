@@ -18,11 +18,29 @@
       (ensure-directories-exist build-dir)
       (format t "'build' Directory created.~%"))))
 
-;; Frontend Main function
+(defun parse-args ()
+  (let ((args (cdr sb-ext:*posix-argv*)))
+    (unless (and (>= (length args) 0) (<= (length args) 1))
+      (format *error-output*
+              "Usage: yano-frontend-bin [port]~%")
+      (sb-ext:exit :code 1))
+    (let ((port (if (<= (length args) 0)
+                    8000
+                    (first args))))
+      (values port))))
+
 (defun main ()
-  (let ((*package* (find-package :yano/frontend)))
-    (yano/frontend::start-server)
-    (sleep most-positive-fixnum)))
+  (multiple-value-bind (port)
+      (parse-args)
+    (let ((*package* (find-package :yano/frontend)))
+      (yano/frontend::start-server :port port)
+      (sleep most-positive-fixnum))))
+
+;; Frontend Main function
+;; (defun main ()
+;;   (let ((*package* (find-package :yano/frontend)))
+;;     (yano/frontend::start-server)
+;;     (sleep most-positive-fixnum)))
 
 (ensure-build-dir)
 

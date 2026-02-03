@@ -4,6 +4,15 @@
 * Introduction
 The idea behind this project is to create and deploy a simple interface based on LISP on Kubernetes. Completely crazy? Probably ;-) 
 The second idea is simply to convert my /go-video-api/ on LISP, so...
+And finally, a piece of security for fun...
+* State of Art
+** Istio
+It is possible to intercept and modify data passing between two services, but not directly at the raw byte level like a low-level filter (e.g., a raw TCP proxy). Istio operates primarily at the HTTP/gRPC level (layer 7 of the OSI model), which means that you can manipulate headers and the body of requests/responses, but not each individual byte.
+** Customize proxy
+If you need very fine-grained control (for example, modifying each byte), you can replace the Envoy sidecar with a custom proxy (written in Go, Rust, etc.) that implements the desired filtering logic.
+** Istio and eBPF
+For truly low-level control (layer 4), you can combine Istio with tools such as Cilium (which uses eBPF) to intercept and modify network traffic. However, this goes beyond Istio's native scope.
+** Summary
 * Podman
 Just to be true to myself, I'll use /podman/. Now, let's start the virtual machine.
 #+begin_src shell

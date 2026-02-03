@@ -7,37 +7,19 @@
 (defvar *server-running* nil
   "Indique si le serveur proxy est en cours d'exécution.")
 
-(defparameter *backend-address* "192.188.200.55")
+(defvar *role* nil
+  "Indique l emplacement du proxy.")
 
-(defparameter *backend-port* 80)
+(defparameter *handshake-size* 10
+  "Taille du secret.")
 
 
-;; (defun start-server (listen-port target-host target-port
-;;                      &key (listen-host "0.0.0.0"))
-;;   (let ((server (make-instance 'inet-socket
-;;                                :type :stream
-;;                                :protocol :tcp)))
-;;     (socket-bind server
-;;                  (host-ent-address
-;;                   (get-host-by-name listen-host))
-;;                  listen-port)
-;;     (socket-listen server 128)
+;; (defparameter *backend-address* "192.188.200.55")
 
-;;     (format t "Proxy listening on ~A:~A -> ~A:~A~%"
-;;             listen-host listen-port target-host target-port)
-
-;;     (loop
-;;       (multiple-value-bind (client-socket addr port)
-;;           (socket-accept server)
-;;         (declare (ignore addr port))
-;;         (make-thread
-;;          (lambda ()
-;;            (handle-client client-socket
-;;                           target-host
-;;                           target-port)))))))
+;; (defparameter *backend-port* 80)
 
 (defun accept-loop (server target-host target-port)
-  (setf *server-running* t)
+  ;; (setf *server-running* t)
   (unwind-protect
        (loop while *server-running* do
          (handler-case
@@ -63,8 +45,11 @@
              (return))))
     (ignore-errors (close server))))
 
+
+;; lsof -i :<listen-port>
+;; kill -9 <PID>
 (defun start-server (listen-port target-host target-port
-                     &key (listen-host "0.0.0.0"))
+                     &key (listen-host "0.0.0.0")(role :alone))
   "Démarre le proxy TCP forward."
   (when *server-running*
     (error "Server already running"))
@@ -72,14 +57,21 @@
   (let ((server (make-instance 'inet-socket
                                :type :stream
                                :protocol :tcp)))
+
+    ;; Autorise la réutilisation de l'adresse
+    (setf (sb-bsd-sockets:sockopt-reuse-address server) t)
+    
+    ;; set the IP address and port (bind)
     (socket-bind server
                  (host-ent-address
                   (get-host-by-name listen-host))
                  listen-port)
+    ;; listen (passive) backlog
     (socket-listen server 128)
 
     (setf *server-socket* server
-          *server-running* t)
+          *server-running* t
+          *role* role)
 
     (make-thread
      (lambda ()

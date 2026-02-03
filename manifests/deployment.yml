@@ -15,9 +15,22 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: gandalfthewhite/yano-bin:latest
+          image: gandalfthewhite/yano-frontend:latest
           ports:
-            - containerPort: 8899
+            - containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+            - name: VIDEO_API_BASE
+              value: "http://backend.bebop.svc.cluster.local:9000"
+            - name: VIDEO_API_LIST
+              value: "/api/videos"
+            - name: PROXY_ADDRESS
+              value: "proxy.bebop.svc.cluster.local"
+            - name: PROXY_PORT
+              value: "45000"
+          args:
+            - "8000"
 ---
 apiVersion: v1
 kind: Service
@@ -29,6 +42,99 @@ spec:
     app: frontend
   ports:
     - protocol: TCP
-      port: 8899
-      targetPort: 8899
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: bebop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: gandalfthewhite/yano-backend:latest
+          ports:
+            - containerPort: 9000
+          env:
+            - name: PORT
+              value: "9000"
+            - name: VIDEO_STORAGE_BASE_URL
+              value: "http://192.188.200.55"
+          args:
+            - "9000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: bebop
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy
+  namespace: bebop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proxy
+  template:
+    metadata:
+      labels:
+        app: proxy
+    spec:
+      containers:
+        - name: proxy
+          image: gandalfthewhite/yano-proxy:latest
+          ports:
+            - containerPort: 45000
+          env:
+            - name: PROXY_LISTEN_PORT
+              value: "45000"
+            - name: PROXY_TARGET_HOST
+              value: "192.188.200.55"
+            - name: PROXY_TARGET_PORT
+              value: "80"
+            - name: PROXY_LISTEN_HOST
+              value: "0.0.0.0"
+          args:
+            - "$(PROXY_LISTEN_PORT)"
+            - "$(PROXY_TARGET_HOST)"
+            - "$(PROXY_TARGET_PORT)"
+            - "$(PROXY_LISTEN_HOST)"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+  namespace: bebop
+spec:
+  selector:
+    app: proxy
+  ports:
+    - protocol: TCP
+      port: 45000
+      targetPort: 45000
   type: ClusterIP

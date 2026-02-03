@@ -27,5 +27,9 @@
                   ((:file "package")
                    (:file "models")
                    (:file "routes")
+                   (:file "server")))
+                 (:module "oracle"
+                  :components
+                  ((:file "package")
                    (:file "server"))))))
   :description "")
