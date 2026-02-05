@@ -26,13 +26,14 @@
   (setf +player.html+ (djula:compile-template* "player.html")))
 
 
-(defun start-server (&key (port *port*))
+(defun start-server (&key (port *port*)(video-api *video-api-base*))
   "Start the server"
   (format t "~&Starting the web server on port ~a~&" port)
   (init-djula)
   (setf *server* (make-instance 'easy-routes-acceptor
                                 :document-root (merge-pathnames #p"static/" (uiop:getcwd))
-                                :port port))
+                                :port port)
+        *video-api-base* video-api)
   (tbnl:start *server*))
 
 

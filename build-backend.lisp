@@ -18,22 +18,28 @@
       (ensure-directories-exist build-dir)
       (format t "'build' Directory created.~%"))))
 
+(defun parse-port (s)
+  (let ((n (parse-integer s :junk-allowed nil)))
+    (unless (<= 1 n 65535)
+      (error "Invalid port: ~a (must be 1..65535)" n))
+    n))
+
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
-    (unless (and (>= (length args) 0) (<= (length args) 1))
+    (unless (= (length args) 2)
       (format *error-output*
-              "Usage: yano-backend-bin [port]~%")
+              "Usage: yano-backend-bin [listen-port] [storage-IP]~%")
       (sb-ext:exit :code 1))
-    (let ((port (if (<= (length args) 0)
-                    9000
-                    (first args))))
-      (values port))))
+    (let ((listen-port (first args))
+          (storage (second args)))
+      (values (parse-port listen-port) storage))))
 
 (defun main ()
-  (multiple-value-bind (port)
+  (multiple-value-bind (listen-port storage)
       (parse-args)
     (let ((*package* (find-package :yano/backend)))
-      (yano/backend::start-server :port port)
+      (yano/backend::start-server :port listen-port
+                                  :storage storage)
       (sleep most-positive-fixnum))))
 
 (ensure-build-dir)

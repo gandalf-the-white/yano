@@ -48,12 +48,20 @@
 
 ;; lsof -i :<listen-port>
 ;; kill -9 <PID>
+;;
+;;./build/yano-frontend-bin
+;; ./build/yano-proxy-bin 45000 "127.0.0.1" 45001 "0.0.0.0" "client"
+;; ./build/yano-proxy-bin 45001 "192.188.200.55" 80 "0.0.0.0" "server"
+;; ./build/yano-backend-bin 9000 "http://192.188.200.55"
+
 (defun start-server (listen-port target-host target-port
                      &key (listen-host "0.0.0.0")(role :alone))
   "Démarre le proxy TCP forward."
   (when *server-running*
     (error "Server already running"))
 
+  (format t "[ ~a ]~%" role)
+  
   (let ((server (make-instance 'inet-socket
                                :type :stream
                                :protocol :tcp)))

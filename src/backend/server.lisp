@@ -6,8 +6,7 @@
 (defparameter *port* 9000
   "Application port.")
 
-(defvar *video-storage-base-url* 
-  "for example http://192.188.200.55")
+(defvar *video-storage-base-url* "http://192.188.200.55")
 
 (defparameter *videos*
   ;; List of movies
@@ -23,14 +22,16 @@
                        :duration 1800
                        :hls-path "/hls/real/playlist.m3u8")))
 
-(defun start-server (&key (port *port*) (ip-storage *video-storage-base-url*))
+(defun start-server (&key (port *port*) (storage *video-storage-base-url*))
+  ;; (defun start-server (&key (port *port*))
   "Start the server"
   (format t "~&Starting the web server on port ~a~&" port)
   (setf *server* (make-instance 'easy-routes-acceptor
                                 :document-root (merge-pathnames #p"static/" (uiop:getcwd))
                                 :port port
                                 :address "127.0.0.1")
-        *video-storage-base-url* ip-storage)
+        *video-storage-base-url* storage)
+  
   (tbnl:start *server*))
 
 

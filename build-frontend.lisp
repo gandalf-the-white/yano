@@ -20,27 +20,23 @@
 
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
-    (unless (and (>= (length args) 0) (<= (length args) 1))
+    (unless (= (length args) 2)
       (format *error-output*
-              "Usage: yano-frontend-bin [port]~%")
+              "Usage: yano-frontend-bin [port] [video-api]~%")
       (sb-ext:exit :code 1))
-    (let ((port (if (<= (length args) 0)
-                    8000
-                    (first args))))
-      (values port))))
+    (let ((port (first args))
+          (video-api (second args)))
+      (values port video-api))))
 
 (defun main ()
-  (multiple-value-bind (port)
+  (multiple-value-bind (port video-api)
       (parse-args)
     (let ((*package* (find-package :yano/frontend)))
-      (yano/frontend::start-server :port port)
+      (yano/frontend::start-server
+       :port port
+       :video-api )
       (sleep most-positive-fixnum))))
 
-;; Frontend Main function
-;; (defun main ()
-;;   (let ((*package* (find-package :yano/frontend)))
-;;     (yano/frontend::start-server)
-;;     (sleep most-positive-fixnum)))
 
 (ensure-build-dir)
 

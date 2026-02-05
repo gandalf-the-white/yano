@@ -48,7 +48,7 @@
           do (setf (aref buf i) (random 256)))
     buf))
 
-(defun tcp-handshake (in out &key (role :alone))
+(defun secret-handshake (in out &key (role :alone))
   (let ((local (random-bytes *handshake-size*))
         (remote (make-array *handshake-size*
                             :element-type '(unsigned-byte 8)))
@@ -69,20 +69,20 @@
              do (format t "~2,'0x " byte))
        (format t "~%")
        (force-output))
-      ((eq role :middle)
-       (format t "Middle: -> ")
-       (force-output)
-       (read-sequence remote in)
-       (write-sequence local in)
-       (write-sequence local out)
-       (read-sequence remoteside out)
-       (loop for byte across remote
-             do (format t "~2,'0x " byte))
-       (loop for byte across remoteside
-             do (format t "~2,'0x " byte))
-       (format t "~%")
-       (force-output)
-       (finish-output out))
+      ;; ((eq role :middle)
+      ;;  (format t "Middle: -> ")
+      ;;  (force-output)
+      ;;  (read-sequence remote in)
+      ;;  (write-sequence local in)
+      ;;  (write-sequence local out)
+      ;;  (read-sequence remoteside out)
+      ;;  (loop for byte across remote
+      ;;        do (format t "~2,'0x " byte))
+      ;;  (loop for byte across remoteside
+      ;;        do (format t "~2,'0x " byte))
+      ;;  (format t "~%")
+      ;;  (force-output)
+      ;;  (finish-output out))
       ((eq role :server)
        (format t "Server: -> ")
        (force-output)
@@ -96,6 +96,22 @@
       (t
        (format t "Alone")
        (force-output)))))
+
+(defun singularity  (target-host target-port)
+  (let* ((target-socket (make-instance 'inet-socket
+                                       :type :stream
+                                       :protocol :tcp)))
+    (socket-connect target-socket
+                    (host-en-address
+                     (get-host-by-name target-host))
+                    target-port)
+    (let ((target-stream (socket-make-stream target-socket
+                                             :input t :output t
+                                             :element-type '(unsigned-byte 8)
+                                             :timeout nil
+                                             :buffering :none)))
+      ))
+  )
 
 ;; (start-server 45000 "127.0.0.1" 45001 :role :client)
 ;; (start-server 45001 "192.188.200.55" 80 :role :server)
@@ -126,7 +142,7 @@
                                                     :timeout nil
                                                     :buffering :none)))
              
-             (tcp-handshake client-stream target-stream :role *role*)
+             ;; (secret-handshake client-stream target-stream :role *role*)
              
              (let ((t1 (make-thread
                         (lambda ()

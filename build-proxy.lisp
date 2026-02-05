@@ -22,27 +22,44 @@
       (ensure-directories-exist build-dir)
       (format t "'build' Directory created.~%"))))
 
+(defun parse-port (s)
+  (let ((n (parse-integer s :junk-allowed nil)))
+    (unless (<= 1 n 65535)
+      (error "Invalid port: ~a (must be 1..65535)" n))
+    n))
+
 ;; ./yano-proxy-bin 8080 example.com 80 127.0.0.1
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
-    (unless (and (>= (length args) 3) (<= (length args) 4))
+    (unless (and (>= (length args) 3) (<= (length args) 5))
       (format *error-output*
-              "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> [listen-host]~%")
+              "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> [listen-host] [role]~%")
       (sb-ext:exit :code 1))
-    (let ((listen-port (parse-integer (first args)))
-          (target-host (second args))
-          (target-port (parse-integer (third args)))
-          (listen-host (if (<= (length args) 3)
-                           "0.0.0.0"
-                           (fourth args))))
-      (values listen-port target-host target-port listen-host))))
+    (let* ((listen-port (parse-integer (first args)))
+           (target-host (second args))
+           (target-port (parse-integer (third args)))
+           (listen-host (if (<= (length args) 3)
+                            "0.0.0.0"
+                            (fourth args)))
+           (role-str (if (= (length args) 5)
+                         (string-downcase (fifth args))
+                         "alone"))
+           (role (cond ((string= role-str "alone") :alone)
+                       ((string= role-str "client") :client)
+                       ((string= role-str "server") :client)
+                       (t
+                        (format *error-output*
+                                "Invalid role: ~A (expected: alone, client, server)\n"
+                                role-str)))))
+      (values listen-port target-host target-port listen-host role))))
 
 (defun main ()
-  (multiple-value-bind (listen-port target-host target-port listen-host)
+  (multiple-value-bind (listen-port target-host target-port listen-host role)
       (parse-args)
     (let ((*package* (find-package :yano/proxy)))
       (yano/proxy::start-server listen-port target-host target-port
-                                :listen-host listen-host)
+                                :listen-host listen-host
+                                :role role)
       (sleep most-positive-fixnum))))
 
 (ensure-build-dir)
