@@ -6,9 +6,11 @@
 (defparameter *port* 8000
   "Application port.")
 
+;; backend
 (defparameter *video-api-base*
   "http://127.0.0.1:9000")
 
+;; to list all videos
 (defparameter *video-api-list*
   "/api/videos")
 
