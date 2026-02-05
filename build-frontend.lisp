@@ -34,7 +34,7 @@
     (let ((*package* (find-package :yano/frontend)))
       (yano/frontend::start-server
        :port port
-       :video-api )
+       :video-api video-api)
       (sleep most-positive-fixnum))))
 
 
