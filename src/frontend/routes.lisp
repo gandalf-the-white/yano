@@ -104,18 +104,22 @@
 (defun render-player (id)
   (let ((video (fetch-video id)))
     ;; (format t "~a~%" video)
-    (if video
-        (progn
-          (setf (getf video :HLS-URL)
-                (replace-server-in-url
-                 (getf video :HLS-URL) *proxy-address* *proxy-port*))
-          (format t "[~a]~%" video)
-          (render-template* +player.html+
-                            nil
-                            :video video))
-        (progn
-          (setf (tbnl:return-code*) 404)
-          "Video not found"))))
+    ;; (if video
+    ;;     (progn
+    ;;       (setf (getf video :HLS-URL)
+    ;;             (replace-server-in-url
+    ;;              (getf video :HLS-URL) *proxy-address* *proxy-port*))
+    ;;       (format t "[~a]~%" video)
+    ;;       (render-template* +player.html+
+    ;;                         nil
+    ;;                         :video video))
+    ;;     (progn
+    ;;       (setf (tbnl:return-code*) 404)
+    ;;       "Video not found"))
+    (render-template* +player.html+
+                      nil
+                      :video video)
+    ))
 
 ;; =============================================
 ;; R O U T E
