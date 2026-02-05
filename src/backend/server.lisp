@@ -29,7 +29,7 @@
   (setf *server* (make-instance 'easy-routes-acceptor
                                 :document-root (merge-pathnames #p"static/" (uiop:getcwd))
                                 :port port
-                                :address "127.0.0.1")
+                                :address "0.0.0.0")
         *video-storage-base-url* storage)
   
   (tbnl:start *server*))

@@ -60,3 +60,9 @@ $ kubectl apply -f deployment.yml
 $ kubectl apply -f gateway.yml
 $ kubectl apply -f virtualservice.yml
 #+end_src
+
+* Test
+#+begin_src shell
+$ ./build/yano-frontend-bin 8000 "http://127.0.0.1:9000"
+$ ./build/yano-backend-bin 9000 "http://192.188.200.55"
+#+end_src
