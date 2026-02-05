@@ -34,7 +34,8 @@
   (init-djula)
   (setf *server* (make-instance 'easy-routes-acceptor
                                 :document-root (merge-pathnames #p"static/" (uiop:getcwd))
-                                :port port)
+                                :port port
+                                :address "0.0.0.0")
         *video-api-base* video-api)
   (tbnl:start *server*))
 
