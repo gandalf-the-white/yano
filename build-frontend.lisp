@@ -24,7 +24,7 @@
       (format *error-output*
               "Usage: yano-frontend-bin [port] [video-api]~%")
       (sb-ext:exit :code 1))
-    (let ((port (first args))
+    (let ((port (parse-integer (first args)))
           (video-api (second args)))
       (values port video-api))))
 
