@@ -46,3 +46,7 @@
  :toplevel #'main
  :executable t
  :compression nil)
+
+;; example
+;; To access the backend "192.188.200.57" 
+;; yano-frontend-bin 8000 "http://192.188.200.57:9000"

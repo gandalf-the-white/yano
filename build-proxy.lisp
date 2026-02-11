@@ -28,7 +28,6 @@
       (error "Invalid port: ~a (must be 1..65535)" n))
     n))
 
-;; ./yano-proxy-bin 8080 example.com 80 127.0.0.1
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
     (unless (and (>= (length args) 3) (<= (length args) 5))
@@ -69,3 +68,7 @@
  :toplevel #'main
  :executable t
  :compression nil)
+
+;; example
+;; To access the storage "192.188.200.55" 
+;; yano-proxy-bin 45000 "192.188.200.55" 80 "0.0.0.0" "alone"

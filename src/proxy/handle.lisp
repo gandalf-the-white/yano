@@ -123,9 +123,9 @@
     (unwind-protect
          (let* ((client-stream (socket-make-stream client-socket
                                                    :input t :output t
-                                                   :element-type '(unsigned-byte 8)
-                                                   :timeout nil
-                                                   :buffering :none))
+                                                   :element-type '(unsigned-byte 8)))
+                ;; :timeout nil
+                ;; :buffering :none))
                 ;; Socket to target 
                 (target-socket (make-instance 'inet-socket
                                               :type :stream
@@ -138,9 +138,9 @@
 
            (let ((target-stream (socket-make-stream target-socket
                                                     :input t :output t
-                                                    :element-type '(unsigned-byte 8)
-                                                    :timeout nil
-                                                    :buffering :none)))
+                                                    :element-type '(unsigned-byte 8))))
+             ;; :timeout nil
+             ;; :buffering :none)))
              
              ;; (secret-handshake client-stream target-stream :role *role*)
              
