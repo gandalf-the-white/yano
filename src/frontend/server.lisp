@@ -7,7 +7,7 @@
   "Application port.")
 
 ;; backend
-(defparameter *video-api-base*
+(defparameter *backend-address*
   "http://127.0.0.1:9000")
 
 ;; to list all videos
@@ -18,7 +18,9 @@
 
 (defparameter +player.html+ nil)
 
-(defparameter *proxy-address* "127.0.0.1")
+;; proxy address
+(defparameter *proxy-address*
+  "127.0.0.1")
 
 (defparameter *proxy-port* 45000)
 
@@ -28,7 +30,10 @@
   (setf +player.html+ (djula:compile-template* "player.html")))
 
 
-(defun start-server (&key (port *port*)(video-api *video-api-base*))
+;; (start-server :port 8000 :video-api "http://127.0.0.1:9000")
+;; (start-server :port 8000 :video-api "http://192.188.200.57:9000")
+;; (start-server :port 8000 :video-api "http://127.0.0.1:45000")
+(defun start-server (&key (port *port*)(backend-address *backend-address*))
   "Start the server"
   (format t "~&Starting the web server on port ~a~&" port)
   (init-djula)
@@ -36,7 +41,7 @@
                                 :document-root (merge-pathnames #p"static/" (uiop:getcwd))
                                 :port port
                                 :address "0.0.0.0")
-        *video-api-base* video-api)
+        *backend-address* backend-address)
   (tbnl:start *server*))
 
 

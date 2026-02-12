@@ -22,19 +22,19 @@
   (let ((args (cdr sb-ext:*posix-argv*)))
     (unless (= (length args) 2)
       (format *error-output*
-              "Usage: yano-frontend-bin [port] [video-api]~%")
+              "Usage: yano-frontend-bin [port] [backend-address]~%")
       (sb-ext:exit :code 1))
     (let ((port (parse-integer (first args)))
-          (video-api (second args)))
-      (values port video-api))))
+          (backend-address (second args)))
+      (values port backend-address))))
 
 (defun main ()
-  (multiple-value-bind (port video-api)
+  (multiple-value-bind (port backend-address)
       (parse-args)
     (let ((*package* (find-package :yano/frontend)))
       (yano/frontend::start-server
        :port port
-       :video-api video-api)
+       :backend-address backend-address)
       (sleep most-positive-fixnum))))
 
 

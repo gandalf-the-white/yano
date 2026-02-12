@@ -4,7 +4,7 @@
   (multiple-value-bind (body status header)
       (drakma:http-request
        (concatenate 'string
-                    *video-api-base*
+                    *backend-address*
                     *video-api-list*)
        :method :get
        :accept "application/json"
@@ -24,7 +24,7 @@
   (multiple-value-bind (body status header)
       (drakma:http-request
        (concatenate 'string
-                    *video-api-base*
+                    *backend-address*
                     *video-api-list*
                     "/" id)
        :method :get
@@ -103,7 +103,7 @@
 
 (defun render-player (id)
   (let ((video (fetch-video id)))
-    ;; (format t "~a~%" video)
+    (format t "--> ~a~%" video)
     ;; (if video
     ;;     (progn
     ;;       (setf (getf video :HLS-URL)
