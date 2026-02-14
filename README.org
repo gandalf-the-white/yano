@@ -61,6 +61,23 @@ $ ./build/yano-frontend-bin 8000 "http://127.0.0.1:9000"
 $ ./build/yano-backend-bin 9000 "http://192.188.200.55"
 #+end_src
 
+* Virtual machine
+** Frontend server
+#+begin_src shell
+$ ./build/yano-frontend-bin 8000 "http://192.188.200.57:9000"
+#+end_src
+** Frontend proxy
+#+begin_src shell
+$ ./build/yano-proxy-bin 45000 "192.188.200.57" 9000
+#+end_src
+** Backend server
+#+begin_src shell
+$ ./build/yano-backend-bin 9000 "http://192.188.200.55"
+#+end_src
+** Backend proxy
+#+begin_src shell
+$ ./build/yano-proxy-bin 45001 "127.0.0.1" 9000
+#+end_src
 * Iptables
 ** Frontend
 We must be sure that /proxy/ is started with the /spike/ account
