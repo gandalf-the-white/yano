@@ -30,9 +30,9 @@
   (setf +player.html+ (djula:compile-template* "player.html")))
 
 
-;; (start-server :port 8000 :video-api "http://127.0.0.1:9000")
-;; (start-server :port 8000 :video-api "http://192.188.200.57:9000")
-;; (start-server :port 8000 :video-api "http://127.0.0.1:45000")
+;; (start-server :port 8000 :backend-address "http://127.0.0.1:9000")
+;; (start-server :port 8000 :backend-address "http://192.188.200.57:9000")
+;; (start-server :port 8000 :backend-address "http://127.0.0.1:45000")
 (defun start-server (&key (port *port*)(backend-address *backend-address*))
   "Start the server"
   (format t "~&Starting the web server on port ~a~&" port)

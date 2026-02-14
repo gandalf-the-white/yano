@@ -13,12 +13,6 @@ If you need very fine-grained control (for example, modifying each byte), you ca
 ** Istio and eBPF
 For truly low-level control (layer 4), you can combine Istio with tools such as Cilium (which uses eBPF) to intercept and modify network traffic. However, this goes beyond Istio's native scope.
 ** Summary
-* Podman
-Just to be true to myself, I'll use /podman/. Now, let's start the virtual machine.
-#+begin_src shell
-$ podman machime start
-$ podman info
-#+end_src
 * Process
 ** Run
 To test the application without stress, I created this smart script.
@@ -65,4 +59,34 @@ $ kubectl apply -f virtualservice.yml
 #+begin_src shell
 $ ./build/yano-frontend-bin 8000 "http://127.0.0.1:9000"
 $ ./build/yano-backend-bin 9000 "http://192.188.200.55"
+#+end_src
+
+* Iptables
+** Frontend
+We must be sure that /proxy/ is started with the /spike/ account
+#+begin_src shell
+$ iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner spike -j RETURN
+$ iptables -t nat -A OUTPUT -p tcp -m owner ! --uid-owner spike --dport 9000 -j REDIRECT --to-port 45000
+#+end_src
+** Backend
+#+begin_src shell
+$ iptables -t nat -I PREROUTING 1 -p tcp -m addrtype --dst-type LOCAL --dport 9000 -j REDIRECT --to-ports 45001
+#+end_src
+and locally
+#+begin_src shell
+$ iptables -t nat -I OUTPUT 1 -p tcp -m owner --uid-owner spike -j RETURN
+$ iptables -t nat -I OUTPUT 2 -p tcp --dport 9000 -j REDIRECT --to-ports 45001
+#+end_src
+** Check
+#+begin_src shell
+$ ss -lntp | egrep ':9000|:45001'
+LISTEN 0      128          0.0.0.0:45001      0.0.0.0:*    users:(("yano-proxy-bin",pid=4831,fd=4))
+LISTEN 0      50           0.0.0.0:9000       0.0.0.0:*    users:(("yano-backend-bi",pid=4697,fd=4))
+#+end_src
+and
+#+begin_src shell
+$ iptables -t nat -L PREROUTING -n -v --line-numbers
+Chain PREROUTING (policy ACCEPT 1 packets, 88 bytes)
+num   pkts bytes target     prot opt in     out     source               destination
+1        9   540 REDIRECT   6    --  *      *       0.0.0.0/0            0.0.0.0/0            ADDRTYPE match dst-type LOCAL tcp dpt:9000 redir ports 45001
 #+end_src
