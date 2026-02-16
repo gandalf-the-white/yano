@@ -14,14 +14,37 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+        - name: iptables-config
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          args:
+            - "apk add --no-cache iptables;
+              iptables -t nat -I PREROUTING 1 -p tcp -m addrtype --dst-type LOCAL --dport 9000 -j REDIRECT --to-ports 45001"
       containers:
         - name: backend
           image: gandalfthewhite/cl-backend:latest
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
           ports:
             - containerPort: 9000
           args:
             - "9000"
             - "http://hls.bebop.lan:80"
+        - name: proxy
+          image: gandalfthewhite/cl-proxy:latest
+          ports:
+            - containerPort: 45001
+          args:
+            - "45001"
+            - "127.0.0.1"
+            - "9000"
 ---
 apiVersion: v1
 kind: Service
