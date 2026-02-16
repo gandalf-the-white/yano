@@ -9,7 +9,7 @@
                :babel
                :jonathan)
   :serial t
-  :components ((:module "src"
+  :components ((:module "../src"
                 :components
                 ((:module "frontend"
                   :components

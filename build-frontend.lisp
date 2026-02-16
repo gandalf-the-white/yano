@@ -8,7 +8,8 @@
 
 ;; Load system and dependencies
 ;; (ql:quickload '(:hunchentoot :easy-routes :djula :drakma :babel :jonathan))
-(push (uiop:getcwd) asdf:*central-registry*)
+;; (push (uiop:getcwd) asdf:*central-registry*)
+(push (merge-pathnames "asd/" (uiop:getcwd)) asdf:*central-registry*)
 (ql:quickload "yano-frontend")
 
 ;; Create the directory if not

@@ -4,7 +4,7 @@
   :license "GPL-3.0 license"
   :depends-on ()
   :serial t
-  :components ((:module "src/proxy"
+  :components ((:module "../src/proxy"
                 :components
                 ((:file "package")
                  (:file "handle")
