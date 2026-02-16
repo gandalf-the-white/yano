@@ -3,8 +3,8 @@ IMAGES			?= cl-frontend cl-proxy cl-backend
 PLATFORM		?= linux/amd64
 TAG      		?= latest
 DOCKERFILE_DIR 	?= docker
-DEPLOY			?= namespace deployment gateway httproute
-UNDEPLOY		?= httproute gateway deployment namespace
+DEPLOY			?= namespace frontend backend gateway httproute
+UNDEPLOY		?= httproute gateway backend frontend namespace
 
 .PHONY: all build push clean check-user
 
