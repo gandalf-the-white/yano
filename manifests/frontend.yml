@@ -24,17 +24,14 @@ spec:
           args:
             - "apk add --no-cache iptables;
               TPROXY_UID=1337;
-              iptables -t nat -N TPROXY_OUT 2>/dev/null || true;
-              iptables -t nat -F TPROXY_OUT;
-              iptables -t nat -A TPROXY_OUT -p tcp -m owner --uid-owner ${TPROXY_UID} -j RETURN;
-              iptables -t nat -A TPROXY_OUT -p tcp -m owner ! --uid-owner ${TPROXY_UID} --dport 9000 -j REDIRECT --to-port 45000;
-              iptables -t nat -C OUTPUT -j TPROXY_OUT 2>/dev/null || iptables -t nat -I OUTPUT 1 -j TPROXY_OUT"
+              iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner ${TPROXY_UID} -j RETURN;
+              iptables -t nat -A OUTPUT -p tcp -m owner ! --uid-owner ${TPROXY_UID} --dport 9000 -j REDIRECT --to-port 45000"
       containers:
         - name: frontend
           image: gandalfthewhite/cl-frontend:latest
           securityContext:
-            runAsUser: 1337
-            runAsGroup: 1337
+            runAsUser: 1338
+            runAsGroup: 1338
             runAsNonRoot: true
             allowPrivilegeEscalation: false
           ports:
@@ -44,6 +41,11 @@ spec:
             - "http://backend:9000"
         - name: proxy
           image: gandalfthewhite/cl-proxy:latest
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
           ports:
             - containerPort: 45000
           args:
