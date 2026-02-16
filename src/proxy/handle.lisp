@@ -7,34 +7,22 @@
     (format nil "~4,'0D-~2,'0D-~2,'0D ~2,'0D:~2,'0D:~2,'0D"
             year month day hour min sec)))
 
-;; (defun forward-stream (in out)
-;;   "Copie les octets de IN vers OUT jusqu'à EOF."
-;;   (handler-case
-;;       (loop
-;;         (let ((byte (read-byte in nil nil)))
-;;           (unless byte
-;;             (finish-output out)
-;;             (return))
-;;           (write-byte byte out)
-;;           (finish-output out)))
-;;     (error () nil)))
+(defun forward-stream (in out &key (transform-fn #'identity) on-finish)
+  (unwind-protect
+       (handler-case
+           (loop
+             (let ((byte (read-byte in nil :eof)))
+               (when (eq byte :eof) (return))
+               (let ((b (funcall transform-fn byte)))
+                 (when b
+                   (write-byte b out)))))
+         (end-of-file () nil)
+         (stream-error () nil)
+         (sb-bsd-sockets:socket-error () nil)
+         (error () nil))
+    (ignore-errors (finish-output out))
+    (when on-finish (ignore-errors (funcall on-finish)))))
 
-;; ex: (forward-stream *standard-input* *standard-output*
-;; :transform-fn (lambda (byte) (logxor byte #xff)))
-
-(defun forward-stream (in out &key (transform-fn #'identity))
-  "Copie les octets de IN vers OUT jusqu'à EOF."
-  (handler-case
-      (loop
-        (let ((byte (read-byte in nil nil)))
-          (unless byte
-            (finish-output out)
-            (return))
-          (let ((transformed-byte (funcall transform-fn byte)))
-            (when transformed-byte
-              (write-byte transformed-byte out)
-              (finish-output out)))))
-    (error () nil)))
 
 ;; (defun send-secret target-stream &key (message #(0 1 2 3 4 5))
 ;;   (write-sequence message target-stream)
@@ -48,116 +36,79 @@
           do (setf (aref buf i) (random 256)))
     buf))
 
-(defun secret-handshake (in out &key (role :alone))
-  (let ((local (random-bytes *handshake-size*))
-        (remote (make-array *handshake-size*
-                            :element-type '(unsigned-byte 8)))
-        (remoteside (make-array *handshake-size*
-                                :element-type '(unsigned-byte 8))))
-    (cond
-      ((eq role :alone)
-       (format t "Alone")
-       (force-output)
-       )
-      ((eq role :client)
-       (format t "Client: -> ")
-       (force-output)
-       (write-sequence local out)
-       (read-sequence remote out)
-       (finish-output out)
-       (loop for byte across remote
-             do (format t "~2,'0x " byte))
-       (format t "~%")
-       (force-output))
-      ;; ((eq role :middle)
-      ;;  (format t "Middle: -> ")
-      ;;  (force-output)
-      ;;  (read-sequence remote in)
-      ;;  (write-sequence local in)
-      ;;  (write-sequence local out)
-      ;;  (read-sequence remoteside out)
-      ;;  (loop for byte across remote
-      ;;        do (format t "~2,'0x " byte))
-      ;;  (loop for byte across remoteside
-      ;;        do (format t "~2,'0x " byte))
-      ;;  (format t "~%")
-      ;;  (force-output)
-      ;;  (finish-output out))
-      ((eq role :server)
-       (format t "Server: -> ")
-       (force-output)
-       (read-sequence remote in)
-       (write-sequence local in)
-       (finish-output in)
-       (loop for byte across remote
-             do (format t "~2,'0x " byte))
-       (format t "~%")
-       (force-output))
-      (t
-       (format t "Alone")
-       (force-output)))))
-
-(defun singularity  (target-host target-port)
-  (let* ((target-socket (make-instance 'inet-socket
-                                       :type :stream
-                                       :protocol :tcp)))
-    (socket-connect target-socket
-                    (host-en-address
-                     (get-host-by-name target-host))
-                    target-port)
-    (let ((target-stream (socket-make-stream target-socket
-                                             :input t :output t
-                                             :element-type '(unsigned-byte 8)
-                                             :timeout nil
-                                             :buffering :none)))
-      ))
-  )
 
 ;; (start-server 45000 "127.0.0.1" 45001 :role :client)
 ;; (start-server 45001 "192.188.200.55" 80 :role :server)
 
 
-(defun handle-client (client-socket client-addr client-port
-                      target-host target-port)
-  (let ((start-time (get-universal-time)))
-    (unwind-protect
-         (let* ((client-stream (socket-make-stream client-socket
-                                                   :input t :output t
-                                                   :element-type '(unsigned-byte 8)
-                                                   :timeout nil
-                                                   :buffering :none))
-                ;; Socket to target 
-                (target-socket (make-instance 'inet-socket
-                                              :type :stream
-                                              :protocol :tcp)))
-           ;; send connect to target
-           (socket-connect target-socket
-                           (host-ent-address
-                            (get-host-by-name target-host))
-                           target-port)
+(defun %safe-close (x)
+  (when x
+    (ignore-errors (close x))))
 
-           (let ((target-stream (socket-make-stream target-socket
+(defun handle-client (client-socket client-addr client-port target-host target-port)
+  (let ((start-time (get-universal-time))
+        (client-stream nil)
+        (target-socket nil)
+        (target-stream nil)
+        (t1 nil)
+        (t2 nil))
+    (unwind-protect
+         (progn
+           (setf client-stream
+                 (sb-bsd-sockets:socket-make-stream client-socket
                                                     :input t :output t
                                                     :element-type '(unsigned-byte 8)
                                                     :timeout nil
-                                                    :buffering :none)))
-             
-             ;; (secret-handshake client-stream target-stream :role *role*)
-             
-             (let ((t1 (make-thread
-                        (lambda ()
-                          (forward-stream client-stream target-stream))))
-                   (t2 (make-thread
-                        (lambda ()
-                          (forward-stream target-stream client-stream)))))
-               (join-thread t1)
-               (join-thread t2))))
-      ;; LOG déconnexion
+                                                    :buffering :none))
+
+           (setf target-socket
+                 (make-instance 'sb-bsd-sockets:inet-socket
+                                :type :stream
+                                :protocol :tcp))
+
+           (sb-bsd-sockets:socket-connect target-socket
+                                          (sb-bsd-sockets:host-ent-address
+                                           (sb-bsd-sockets:get-host-by-name target-host))
+                                          target-port)
+
+           (setf target-stream
+                 (sb-bsd-sockets:socket-make-stream target-socket
+                                                    :input t :output t
+                                                    :element-type '(unsigned-byte 8)
+                                                    :timeout nil
+                                                    :buffering :none))
+
+           ;; Quand un sens se termine, on shutdown la sortie opposée pour débloquer l'autre thread.
+           (setf t1
+                 (sb-thread:make-thread
+                  (lambda ()
+                    (forward-stream client-stream target-stream
+                                    :on-finish (lambda ()
+                                                 (when target-socket
+                                                   (ignore-errors
+                                                    (sb-bsd-sockets:socket-shutdown
+                                                     target-socket :direction :output))))))))
+           (setf t2
+                 (sb-thread:make-thread
+                  (lambda ()
+                    (forward-stream target-stream client-stream
+                                    :on-finish (lambda ()
+                                                 (when client-socket
+                                                   (ignore-errors
+                                                    (sb-bsd-sockets:socket-shutdown
+                                                     client-socket :direction :output))))))))
+
+           ;; Join : maintenant, si un côté meurt, l’autre est débloqué via shutdown.
+           (sb-thread:join-thread t1)
+           (sb-thread:join-thread t2))
+
+      ;; LOG déconnexion + cleanup
       (let ((duration (- (get-universal-time) start-time)))
         (format t "[~A] DISCONNECT ~A:~A (duration ~As)~%"
-                (now)
-                client-addr client-port
-                duration))
+                (now) client-addr client-port duration))
 
-      (ignore-errors (close client-socket)))))
-
+      ;; fermer streams d'abord, puis sockets
+      (%safe-close client-stream)
+      (%safe-close target-stream)
+      (%safe-close client-socket)
+      (%safe-close target-socket))))
