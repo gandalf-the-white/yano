@@ -1,15 +1,12 @@
-apiVersion: networking.istio.io/v1beta1
+apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
-  name: app-gateway
+  name: bebop-gateway
   namespace: bebop
 spec:
-  selector:
-    istio: ingressgateway
-  servers:
-    - port:
-        number: 80
-        name: http
-        protocol: HTTP
-      hosts:
-        - "bebop.lan"
+  gatewayClassName: eg
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: bebop.lan

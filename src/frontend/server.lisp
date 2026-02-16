@@ -25,7 +25,7 @@
 (defparameter *proxy-port* 45000)
 
 (defun init-djula ()
-  (djula:add-template-directory (asdf:system-relative-pathname :yano "templates/"))
+  (djula:add-template-directory (asdf:system-relative-pathname :yano-frontend "templates/"))
   (setf +index.html+ (djula:compile-template* "index.html"))
   (setf +player.html+ (djula:compile-template* "player.html")))
 

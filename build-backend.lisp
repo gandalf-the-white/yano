@@ -53,4 +53,4 @@
 
 ;; example
 ;; To access the storage "192.188.200.55" 
-;; yano-frontend-bin 9000 "http://192.188.200.55"
+;; yano-backend-bin 9000 "http://192.188.200.55"

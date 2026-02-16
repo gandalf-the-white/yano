@@ -27,11 +27,11 @@ $ sbcl --script build.lisp
 ** Dockerfile
 I said previously that the best and lazy solution was to build in first the /binary/, so I stay on this inflexible position.
 We don't forget to select the right architecture (Linux/AMD), hence the need to compile in a clean container and then create the image.
-** Build
+** TODO Build
 Pretty simple,
 #+begin_src shell
-$ podman build -t gandalfthewhite/yano-bin:latest .
-$ podman push localhost/gandalfthewhite/yano-bin:latest  docker.io/gandalfthewhite/yano-bin:latest
+$ docker build --platform linux/amd64 -t gandalfthewhite/cl-proxy:latest -f Dockerfile-proxy .
+$ docker push localhost/gandalfthewhite/cl-proxy:latest  docker.io/gandalfthewhite/cl-proxy:latest
 #+end_src
 ** Push
 It's time to push our new image
