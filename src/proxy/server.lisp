@@ -13,6 +13,12 @@
 (defparameter *handshake-size* 10
   "Taille du secret.")
 
+(defparameter *global-host* nil
+  "Define Oracle IP address")
+
+(defparameter *global-port* nil
+  "Define Oracle port")
+
 
 (defun accept-loop (server target-host target-port)
   "Boucle d'acceptation : accepte les connexions et lance un thread par client.
@@ -66,11 +72,14 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
     ((or (eq role :p2)    (string= role "p2"))    (values nil t))
     (t (values nil nil))))
 
-(defun start-server (listen-port target-host target-port &key (listen-host "0.0.0.0") (role :alone))
+(defun start-server (listen-port target-host target-port global-host global-port &key (listen-host "0.0.0.0") (role :alone))
   "Démarre le proxy TCP forward."
   (when *server-running*
     (error "Server already running"))
 
+  (setf *global-host* global-host
+        *global-port* global-port)
+  
   (setf *role*
         (etypecase role
           (keyword role)

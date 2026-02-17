@@ -31,18 +31,20 @@
 
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
-    (unless (and (>= (length args) 3) (<= (length args) 5))
+    (unless (and (>= (length args) 5) (<= (length args) 7))
       (format *error-output*
-              "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> [listen-host] [role]~%")
+              "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> <global-host> <global-port> [listen-host] [role]~%")
       (sb-ext:exit :code 1))
     (let* ((listen-port (parse-integer (first args)))
            (target-host (second args))
            (target-port (parse-integer (third args)))
-           (listen-host (if (<= (length args) 3)
+           (global-host (fourth args))
+           (global-port (parse-integer (fifth args)))
+           (listen-host (if (<= (length args) 5)
                             "0.0.0.0"
-                            (fourth args)))
-           (role-str (if (= (length args) 5)
-                         (string-downcase (fifth args))
+                            (sixth args)))
+           (role-str (if (= (length args) 7)
+                         (string-downcase (seventh args))
                          "alone"))
            (role (cond ((string= role-str "alone") :alone)
                        ((string= role-str "p1") :p1)
@@ -51,13 +53,13 @@
                         (format *error-output*
                                 "Invalid role: ~A (expected: alone, p1, p2)\n"
                                 role-str)))))
-      (values listen-port target-host target-port listen-host role))))
+      (values listen-port target-host target-port global-host global-port listen-host role))))
 
 (defun main ()
-  (multiple-value-bind (listen-port target-host target-port listen-host role)
+  (multiple-value-bind (listen-port target-host target-port global-host global-port listen-host role)
       (parse-args)
     (let ((*package* (find-package :yano/proxy)))
-      (yano/proxy::start-server listen-port target-host target-port
+      (yano/proxy::start-server listen-port target-host target-port global-host global-port
                                 :listen-host listen-host
                                 :role role)
       (sleep most-positive-fixnum))))

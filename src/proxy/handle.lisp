@@ -1,8 +1,5 @@
 (in-package :yano/proxy)
 
-(defparameter *global-host* "127.0.0.1")
-(defparameter *global-port* 9100)
-
 (defun now ()
   "Retourne un timestamp lisible."
   (multiple-value-bind (sec min hour day month year)
