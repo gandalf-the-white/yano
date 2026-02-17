@@ -1,5 +1,7 @@
 (defpackage :yano/oracle
   (:use :cl)
-  (:import-from :easy-routes
-   :easy-routes-acceptor))
+  (:import-from :sb-ext
+   :with-timeout)
+  (:import-from :uiop
+   :split-string))
 

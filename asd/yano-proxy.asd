@@ -7,6 +7,7 @@
   :components ((:module "../src/proxy"
                 :components
                 ((:file "package")
+                 (:file "handshake")
                  (:file "handle")
                  (:file "server"))))
   :description "")

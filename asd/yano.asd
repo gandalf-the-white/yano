@@ -20,6 +20,7 @@
                  (:module "proxy"
                   :components
                   ((:file "package")
+                   (:file "handshake")
                    (:file "handle")
                    (:file "server")))
                  (:module "backend"
