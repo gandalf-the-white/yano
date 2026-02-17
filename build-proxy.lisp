@@ -45,11 +45,11 @@
                          (string-downcase (fifth args))
                          "alone"))
            (role (cond ((string= role-str "alone") :alone)
-                       ((string= role-str "client") :client)
-                       ((string= role-str "server") :client)
+                       ((string= role-str "p1") :p1)
+                       ((string= role-str "p2") :p2)
                        (t
                         (format *error-output*
-                                "Invalid role: ~A (expected: alone, client, server)\n"
+                                "Invalid role: ~A (expected: alone, p1, p2)\n"
                                 role-str)))))
       (values listen-port target-host target-port listen-host role))))
 

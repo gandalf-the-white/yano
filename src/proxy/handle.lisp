@@ -30,16 +30,45 @@
 ;;   (format t "Send Message (16 bytes) : ~a~%"
 ;;           (map 'list #'identity message)))
 
-(defun random-bytes (n)
-  (let ((buf (make-array n :element-type '(unsigned-byte 8))))
-    (loop for i below n
-          do (setf (aref buf i) (random 256)))
-    buf))
+;; (defun random-bytes (n)
+;;   (let ((buf (make-array n :element-type '(unsigned-byte 8))))
+;;     (loop for i below n
+;;           do (setf (aref buf i) (random 256)))
+;;     buf))
 
 
 ;; (start-server 45000 "127.0.0.1" 45001 :role :client)
 ;; (start-server 45001 "192.188.200.55" 80 :role :server)
 
+
+(defun write-ascii-line (stream line)
+  (loop for ch across line do (write-byte (char-code ch) stream))
+  (write-byte 10 stream) ; \n
+  (finish-output stream))
+
+(defun read-ascii-line (stream &key (max 128))
+  (let ((chars '())
+        (n 0))
+    (loop
+      (when (>= n max) (return (coerce (nreverse chars) 'string)))
+      (let ((b (read-byte stream nil :eof)))
+        (when (eq b :eof) (return (coerce (nreverse chars) 'string)))
+        (cond
+          ((= b 10) (return (coerce (nreverse chars) 'string))) ; \n
+          (t (push (code-char b) chars)
+             (incf n)))))))
+
+(defun do-client-handshake (target-stream)
+  (write-ascii-line target-stream "bonjour")
+  (let ((reply (read-ascii-line target-stream)))
+    (unless (string= reply "ok")
+      (error "Handshake failed, expected \"ok\", got ~S" reply))))
+
+(defun do-server-handshake (client-stream)
+  (let ((msg (read-ascii-line client-stream)))
+    (unless (string= msg "bonjour")
+      (error "Unexpected handshake, got ~S" msg))
+    (write-ascii-line client-stream "ok")))
 
 (defun %safe-close (x)
   (when x
