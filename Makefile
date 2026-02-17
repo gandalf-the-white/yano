@@ -1,5 +1,5 @@
 USER_DOCKER 	?=${TF_VAR_docker_login}
-IMAGES			?= cl-frontend cl-proxy cl-backend
+IMAGES			?= cl-frontend cl-proxy cl-backend cl-oracle
 PLATFORM		?= linux/amd64
 TAG      		?= latest
 DOCKERFILE_DIR 	?= docker
