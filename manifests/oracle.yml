@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oracle
+  namespace: bebop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oracle
+  template:
+    metadata:
+      labels:
+        app: oracle
+    spec:
+      containers:
+        - name: oracle
+          image: gandalfthewhite/cl-oracle:latest
+          securityContext:
+            runAsUser: 1337
+            runAsGroup: 1337
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 10000
+          args:
+            - "10000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oracle
+  namespace: bebop
+spec:
+  selector:
+    app: oracle
+  ports:
+    - protocol: TCP
+      port: 10000
+      targetPort: 10000
+  type: ClusterIP
