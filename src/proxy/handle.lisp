@@ -117,11 +117,26 @@
              (when send-handshake
                (do-client-handshake target-stream))
              
-             ;; Ensuite seulement: forwarding
-             (let ((t1 (make-thread (lambda () (forward-stream client-stream target-stream))))
-                   (t2 (make-thread (lambda () (forward-stream target-stream client-stream)))))
-               (join-thread t1)
-               (join-thread t2)))
+             (let* ((t1 (sb-thread:make-thread
+                         (lambda ()
+                           (forward-stream client-stream target-stream
+                                           :on-finish (lambda ()
+                                                        ;; client->target fini => dire à target "j'enverrai plus"
+                                                        (when target-socket
+                                                          (ignore-errors
+                                                           (sb-bsd-sockets:socket-shutdown
+                                                            target-socket :direction :output))))))))
+                    (t2 (sb-thread:make-thread
+                         (lambda ()
+                           (forward-stream target-stream client-stream
+                                           :on-finish (lambda ()
+                                                        ;; target->client fini => dire au client "j'enverrai plus"
+                                                        (when client-socket
+                                                          (ignore-errors
+                                                           (sb-bsd-sockets:socket-shutdown
+                                                            client-socket :direction :output)))))))))
+               (sb-thread:join-thread t1)
+               (sb-thread:join-thread t2)))
 
 
         
