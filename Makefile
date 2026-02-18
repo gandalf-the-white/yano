@@ -3,8 +3,8 @@ IMAGES			?= cl-frontend cl-proxy cl-backend cl-oracle
 PLATFORM		?= linux/amd64
 TAG      		?= latest
 DOCKERFILE_DIR 	?= docker
-DEPLOY			?= namespace frontend backend gateway httproute
-UNDEPLOY		?= httproute gateway backend frontend namespace
+DEPLOY			?= namespace frontend backend oracle gateway httproute
+UNDEPLOY		?= httproute gateway oracle backend frontend namespace
 
 .PHONY: all build push clean check-user
 
