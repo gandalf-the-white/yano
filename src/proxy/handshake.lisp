@@ -62,6 +62,26 @@
       (write-ascii-line client-stream (format nil "ok ~A" conn-id))
       conn-id)))
 
+(defun parse-global-reply-fctn (line)
+  "LINE: \"ok not\" ou \"ok xor 42\".
+Retourne 2 valeurs: encrypt-fn decrypt-fn."
+  (let* ((parts (remove "" (uiop:split-string line :separator " ") :test #'string=)))
+    (unless (and (>= (length parts) 2) (string= (first parts) "ok"))
+      (error "Global denied: ~S" line))
+    (let ((algo (second parts)))
+      (cond
+        ((string= algo "not")
+         (values #'byte-not #'byte-not))
+        ((string= algo "xor")
+         (unless (= (length parts) 3)
+           (error "Bad global reply (xor needs key): ~S" line))
+         (let* ((k (parse-integer (third parts) :junk-allowed nil))
+                (fn (make-byte-xor k)))
+           (values fn fn)))
+        (t
+         (error "Unknown algo from global: ~S" algo))))))
+
+
 (defun global-handshake (global-host global-port role conn-id peer-ip peer-port)
   "Contacte le serveur global. Lève une erreur si deny/timeout."
   (let ((sock (make-instance 'sb-bsd-sockets:inet-socket :type :stream :protocol :tcp))
@@ -75,19 +95,23 @@
                (sb-bsd-sockets:get-host-by-name global-host))
               global-port))
 
-           (setf s (sb-bsd-sockets:socket-make-stream sock
-                                                      :input t :output t
-                                                      :element-type '(unsigned-byte 8)
-                                                      :timeout nil
-                                                      :buffering :none))
-           (write-ascii-line s
+           (setf global-stream (sb-bsd-sockets:socket-make-stream sock
+                                                                  :input t :output t
+                                                                  :element-type '(unsigned-byte 8)
+                                                                  :timeout nil
+                                                                  :buffering :none))
+           (write-ascii-line global-stream
                              (format nil "hello ~A ~A ~A ~A"
                                      role conn-id peer-ip peer-port))
 
            (let ((reply (sb-ext:with-timeout 3 
-                          (read-ascii-line s))))
-             (cond
-               ((string= reply "ok") t)
-               (t (error "Global denied: ~S" reply)))))
-      (ignore-errors (close s))
+                          (read-ascii-line global-stream))))
+             ;; (cond
+             ;; ((string= reply "ok") t)
+             ;; (t (error "Global denied: ~S" reply)))
+
+             (multiple-value-bind (enc dec)
+                 (parse-global-reply-fctn reply)
+               (values enc dec))))
+      (ignore-errors (close global-stream))
       (ignore-errors (close sock)))))

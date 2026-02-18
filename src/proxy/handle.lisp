@@ -68,8 +68,9 @@
                 ;; 1) handshake p1->p2 (consomme "bonjour ...")
                 (let ((conn-id (p2-handshake-with-p1 client-stream)))
                   ;; 2) handshake avec serveur global AVANT de toucher au backend
-                  (global-handshake *global-host* *global-port* "p2"
-                                    conn-id client-addr client-port)
+                  (multiple-value-bind (enc-fn dec-fn)
+                      (global-handshake *global-host* *global-port* "p2"
+                                        conn-id client-addr client-port))
                   ;; 3) maintenant seulement : connexion backend
                   (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
                                                      :type :stream :protocol :tcp))
@@ -101,29 +102,65 @@
                   (let ((conn-id (make-conn-id)))
                     (p1-handshake-with-p2 target-stream conn-id)
                     ;; 2) handshake global avant forward
-                    (global-handshake *global-host* *global-port* "p1"
-                                      conn-id client-addr client-port)))))
+                    (multiple-value-bind (enc-fn dec-fn)
+                        (global-handshake *global-host* *global-port* "p1"
+                                          conn-id client-addr client-port))))))
              
-             (let* ((t1 (sb-thread:make-thread
-                         (lambda ()
-                           (forward-stream client-stream target-stream
-                                           :on-finish (lambda ()
-                                                        ;; client->target fini => dire à target "j'enverrai plus"
-                                                        (when target-socket
-                                                          (ignore-errors
-                                                           (sb-bsd-sockets:socket-shutdown
-                                                            target-socket :direction :output))))))))
-                    (t2 (sb-thread:make-thread
-                         (lambda ()
-                           (forward-stream target-stream client-stream
-                                           :on-finish (lambda ()
-                                                        ;; target->client fini => dire au client "j'enverrai plus"
-                                                        (when client-socket
-                                                          (ignore-errors
-                                                           (sb-bsd-sockets:socket-shutdown
-                                                            client-socket :direction :output)))))))))
-               (sb-thread:join-thread t1)
-               (sb-thread:join-thread t2)))
+             (labels
+                 ((shutdown-target-output ()
+                    (when target-socket
+                      (ignore-errors
+                       (sb-bsd-sockets:socket-shutdown target-socket :direction :output))))
+                  (shutdown-client-output ()
+                    (when client-socket
+                      (ignore-errors
+                       (sb-bsd-sockets:socket-shutdown client-socket :direction :output)))))
+
+               (cond
+                 ;; P1: enc vers p2, dec vers client
+                 ((eq *role* :p1)
+                  (let ((t1 (sb-thread:make-thread
+                             (lambda ()
+                               (forward-stream client-stream target-stream
+                                               :transform-fn enc-fn
+                                               :on-finish #'shutdown-target-output))))
+                        (t2 (sb-thread:make-thread
+                             (lambda ()
+                               (forward-stream target-stream client-stream
+                                               :transform-fn dec-fn
+                                               :on-finish #'shutdown-client-output)))))
+                    (sb-thread:join-thread t1)
+                    (sb-thread:join-thread t2)))
+
+                 ;; P2: dec vers backend, enc vers p1
+                 ((eq *role* :p2)
+                  (let ((t1 (sb-thread:make-thread
+                             (lambda ()
+                               (forward-stream client-stream target-stream
+                                               :transform-fn dec-fn
+                                               :on-finish #'shutdown-target-output))))
+                        (t2 (sb-thread:make-thread
+                             (lambda ()
+                               (forward-stream target-stream client-stream
+                                               :transform-fn enc-fn
+                                               :on-finish #'shutdown-client-output)))))
+                    (sb-thread:join-thread t1)
+                    (sb-thread:join-thread t2)))
+
+                 ;; ALONE: identity dans les deux sens
+                 (t
+                  (let ((t1 (sb-thread:make-thread
+                             (lambda ()
+                               (forward-stream client-stream target-stream
+                                               :transform-fn #'identity
+                                               :on-finish #'shutdown-target-output))))
+                        (t2 (sb-thread:make-thread
+                             (lambda ()
+                               (forward-stream target-stream client-stream
+                                               :transform-fn #'identity
+                                               :on-finish #'shutdown-client-output)))))
+                    (sb-thread:join-thread t1)
+                    (sb-thread:join-thread t2))))))
         
         ;; LOG déconnexion + cleanup
         (let ((duration (- (get-universal-time) start-time)))
