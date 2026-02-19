@@ -7,6 +7,30 @@
     (format nil "~4,'0D-~2,'0D-~2,'0D ~2,'0D:~2,'0D:~2,'0D"
             year month day hour min sec)))
 
+(defun make-tap (real-transform-fn label)
+  "Retourne une fonction (byte -> byte) qui applique REAL-TRANSFORM-FN
+   et logge les 16 premiers octets après transformation."
+  (let ((count 0))
+    (lambda (b)
+      (let ((out (funcall real-transform-fn b)))
+        (when (< count 16)
+          (format t "~A TAP ~2,'0X~%" label out)
+          (incf count))
+        out))))
+
+(defun make-tap-before-after (real-transform-fn label)
+  "Retourne une fonction (byte -> byte) qui:
+   - applique REAL-TRANSFORM-FN
+   - logge AVANT et APRES sur les 16 premiers octets"
+  (let ((count 0))
+    (lambda (b)
+      (let ((before b)
+            (after (funcall real-transform-fn b)))
+        (when (< count 16)
+          (format t "~A TAP ~2,'0X -> ~2,'0X~%" label before after)
+          (incf count))
+        after))))
+
 (defun forward-stream (in out &key (transform-fn #'identity) on-finish)
   (unwind-protect
        (handler-case
@@ -67,6 +91,12 @@
                   (multiple-value-bind (enc-fn dec-fn)
                       (global-handshake *global-host* *global-port* "p2"
                                         conn-id client-addr client-port))
+                  ;; To test enc/dec before and after, uncomment
+                  ;; (setf enc-fn (make-tap enc-fn "P2→P1-ENC")
+                  ;;       dec-fn (make-tap dec-fn "P2←P1-DEC"))
+                  ;; (setf enc-fn (make-tap-before-after enc-fn "P2→P1")
+                  ;;       dec-fn (make-tap-before-after dec-fn "P2←P1"))
+                  
                   ;; 3) maintenant seulement : connexion backend
                   (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
                                                      :type :stream :protocol :tcp))
@@ -100,7 +130,13 @@
                     ;; 2) handshake global avant forward
                     (multiple-value-bind (enc-fn dec-fn)
                         (global-handshake *global-host* *global-port* "p1"
-                                          conn-id client-addr client-port))))))
+                                          conn-id client-addr client-port))
+                    ;; To test enc/dec before and after, uncomment
+                    ;; (setf enc-fn (make-tap enc-fn "P2→P1-ENC")
+                    ;;       dec-fn (make-tap dec-fn "P2←P1-DEC"))
+                    ;; (setf enc-fn (make-tap-before-after enc-fn "P1→P2")
+                    ;;       dec-fn (make-tap-before-after dec-fn "P1←P2"))
+                    ))))
              
              (labels
                  ((shutdown-target-output ()

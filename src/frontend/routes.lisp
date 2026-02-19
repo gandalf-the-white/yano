@@ -103,7 +103,7 @@
 
 (defun render-player (id)
   (let ((video (fetch-video id)))
-    (format t "--> ~a~%" video)
+    ;; (format t "--> ~a~%" video)
     ;; (if video
     ;;     (progn
     ;;       (setf (getf video :HLS-URL)

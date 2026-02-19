@@ -73,14 +73,17 @@ Retourne 2 valeurs: encrypt-fn decrypt-fn."
     (let ((algo (second parts)))
       (cond
         ((string= algo "idt")
+         ;; (format t "Apply encryption function: ~S~%" algo)
          (values #'identity #'identity))
         ((string= algo "not")
+         ;; (format t "Apply encryption function: ~S~%" algo)
          (values #'byte-not #'byte-not))
         ((string= algo "xor")
          (unless (= (length parts) 3)
            (error "Bad global reply (xor needs key): ~S" line))
          (let* ((k (parse-integer (third parts) :junk-allowed nil))
                 (fn (make-byte-xor k)))
+           ;; (format t "Apply encryption function: ~S~%" algo)
            (values fn fn)))
         (t
          (error "Unknown algo from global: ~S" algo))))))
