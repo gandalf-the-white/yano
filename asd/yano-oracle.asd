@@ -7,5 +7,6 @@
   :components ((:module "../src/oracle"
                 :components
                 ((:file "package")
+                 (:file "handle")
                  (:file "server"))))
   :description "")
