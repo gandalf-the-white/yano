@@ -43,6 +43,7 @@
           (get-universal-time)
           (random most-positive-fixnum)))
 
+;; run by p1
 (defun p1-handshake-with-p2 (target-stream conn-id)
   (write-ascii-line target-stream (format nil "bonjour ~A" conn-id))
   (let ((line (sb-ext:with-timeout 3  ; 3s
@@ -50,6 +51,7 @@
     (unless (string= line (format nil "ok ~A" conn-id))
       (error "Bad handshake from p2: ~S" line))))
 
+;; run by p2
 (defun p2-handshake-with-p1 (client-stream)
   (let* ((line (sb-ext:with-timeout 3 
                  (read-ascii-line client-stream)))
@@ -70,6 +72,8 @@ Retourne 2 valeurs: encrypt-fn decrypt-fn."
       (error "Global denied: ~S" line))
     (let ((algo (second parts)))
       (cond
+        ((string= algo "idt")
+         (values #'identity #'identity))
         ((string= algo "not")
          (values #'byte-not #'byte-not))
         ((string= algo "xor")
@@ -81,21 +85,22 @@ Retourne 2 valeurs: encrypt-fn decrypt-fn."
         (t
          (error "Unknown algo from global: ~S" algo))))))
 
-
 (defun global-handshake (global-host global-port role conn-id peer-ip peer-port)
   "Contacte le serveur global. Lève une erreur si deny/timeout."
-  (let ((sock (make-instance 'sb-bsd-sockets:inet-socket :type :stream :protocol :tcp))
-        (s nil))
+  (let ((global-socket (make-instance 'sb-bsd-sockets:inet-socket
+                                      :type :stream
+                                      :protocol :tcp))
+        (global-stream nil))
     (unwind-protect
          (progn
            (sb-ext:with-timeout 3 
              (sb-bsd-sockets:socket-connect
-              sock
+              global-socket
               (sb-bsd-sockets:host-ent-address
                (sb-bsd-sockets:get-host-by-name global-host))
               global-port))
 
-           (setf global-stream (sb-bsd-sockets:socket-make-stream sock
+           (setf global-stream (sb-bsd-sockets:socket-make-stream global-socket
                                                                   :input t :output t
                                                                   :element-type '(unsigned-byte 8)
                                                                   :timeout nil
@@ -114,4 +119,4 @@ Retourne 2 valeurs: encrypt-fn decrypt-fn."
                  (parse-global-reply-fctn reply)
                (values enc dec))))
       (ignore-errors (close global-stream))
-      (ignore-errors (close sock)))))
+      (ignore-errors (close global-socket)))))

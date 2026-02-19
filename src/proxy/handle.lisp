@@ -36,12 +36,7 @@
 ;;           do (setf (aref buf i) (random 256)))
 ;;     buf))
 
-
-;; (start-server 45000 "127.0.0.1" 45001 :role :client)
-;; (start-server 45001 "192.188.200.55" 80 :role :server)
-
-
-(defun %safe-close (x)
+(defun safe-close (x)
   (when x
     (ignore-errors (close x))))
 
@@ -52,8 +47,9 @@
           (client-stream nil)
           (target-socket nil)
           (target-stream nil)
-          (t1 nil)
-          (t2 nil))
+          ;; Transformation function (default to identity)
+          (enc-fn #'identity)
+          (dec-fn #'identity))
       (unwind-protect
            (progn
              (setf client-stream
@@ -152,12 +148,12 @@
                   (let ((t1 (sb-thread:make-thread
                              (lambda ()
                                (forward-stream client-stream target-stream
-                                               :transform-fn #'identity
+                                               :transform-fn enc-fn ;; #'identity
                                                :on-finish #'shutdown-target-output))))
                         (t2 (sb-thread:make-thread
                              (lambda ()
                                (forward-stream target-stream client-stream
-                                               :transform-fn #'identity
+                                               :transform-fn dec-fn ;; #'identity
                                                :on-finish #'shutdown-client-output)))))
                     (sb-thread:join-thread t1)
                     (sb-thread:join-thread t2))))))
@@ -168,7 +164,7 @@
                   (now) client-addr client-port duration))
 
         ;; fermer streams d'abord, puis sockets
-        (%safe-close client-stream)
-        (%safe-close target-stream)
-        (%safe-close client-socket)
-        (%safe-close target-socket)))))
+        (safe-close client-stream)
+        (safe-close target-stream)
+        (safe-close client-socket)
+        (safe-close target-socket)))))

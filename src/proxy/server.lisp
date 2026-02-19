@@ -19,6 +19,13 @@
 (defparameter *global-port* nil
   "Define Oracle port")
 
+(defun handshake-mode (role)
+  "Retourne deux valeurs: SEND? EXPECT?"
+  (cond
+    ((or (eq role :alone) (string= role "alone")) (values nil nil))
+    ((or (eq role :p1)    (string= role "p1"))    (values t nil))
+    ((or (eq role :p2)    (string= role "p2"))    (values nil t))
+    (t (values nil nil))))
 
 (defun accept-loop (server target-host target-port)
   "Boucle d'acceptation : accepte les connexions et lance un thread par client.
@@ -63,14 +70,6 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
 ;; ./build/yano-proxy-bin 45000 "127.0.0.1" 45001 "0.0.0.0" "client"
 ;; ./build/yano-proxy-bin 45001 "192.188.200.55" 80 "0.0.0.0" "server"
 ;; ./build/yano-backend-bin 9000 "http://192.188.200.55"
-
-(defun handshake-mode (role)
-  "Retourne deux valeurs: SEND? EXPECT?"
-  (cond
-    ((or (eq role :alone) (string= role "alone")) (values nil nil))
-    ((or (eq role :p1)    (string= role "p1"))    (values t nil))
-    ((or (eq role :p2)    (string= role "p2"))    (values nil t))
-    (t (values nil nil))))
 
 (defun start-server (listen-port target-host target-port global-host global-port &key (listen-host "0.0.0.0") (role :alone))
   "Démarre le proxy TCP forward."
