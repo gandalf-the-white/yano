@@ -119,6 +119,6 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
     (setf *server-running* nil)
     ;; Ferme le socket serveur → débloque socket-accept
     (when *server-socket*
-      (%safe-close *server-socket*)
+      (safe-close *server-socket*)
       (setf *server-socket* nil))
     (format t "TCP proxy stopped~%")))
