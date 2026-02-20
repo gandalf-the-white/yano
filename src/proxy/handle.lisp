@@ -65,142 +65,214 @@
     (ignore-errors (close x))))
 
 (defun handle-client (client-socket client-addr client-port target-host target-port)
-  (multiple-value-bind (send-handshake expect-handshake)
-      (handshake-mode *role*)
-    (let ((start-time (get-universal-time))
-          (client-stream nil)
-          (target-socket nil)
-          (target-stream nil)
-          ;; Transformation function (default to identity)
-          (enc-fn #'identity)
-          (dec-fn #'identity))
-      (unwind-protect
-           (progn
-             (setf client-stream
-                   (sb-bsd-sockets:socket-make-stream client-socket
-                                                      :input t :output t
-                                                      :element-type '(unsigned-byte 8)
-                                                      :timeout nil
-                                                      :buffering :none))
+  ;; (multiple-value-bind (send-handshake expect-handshake)
+  ;; (handshake-mode *role*)
+  (declare (ignore target-host target-port))
+  (let ((start-time (get-universal-time))
+        (client-stream nil)
+        (target-socket nil)
+        (target-stream nil)
+        ;; Transformation function (default to identity)
+        (enc-fn #'identity)
+        (dec-fn #'identity))
+    (unwind-protect
+         (progn
+           (setf client-stream
+                 (sb-bsd-sockets:socket-make-stream client-socket
+                                                    :input t :output t
+                                                    :element-type '(unsigned-byte 8)
+                                                    :timeout nil
+                                                    :buffering :none))
+
+
+           ;;============================================
+
+           (cond 
+             ((eq *role* :alone)
+              (multiple-value-bind (cd dst-port dst-host dst-ip4 userid)
+                  (parse-socks4-request client-stream)
+                (declare (ignore userid))
+                (cond
+                  ((= cd #x01) ;; CONNECT
+                   (handler-case
+                       (progn
+                         (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
+                                                            :type :stream
+                                                            :protocol :tcp))
+                         (sb-bsd-sockets:socket-connect target-socket
+                                                        (sb-bsd-sockets:host-ent-address
+                                                         (sb-bsd-sockets:get-host-by-name dst-host))
+                                                        dst-port)
+
+                         (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
+                                                                                :input t :output t
+                                                                                :element-type '(unsigned-byte 8)
+                                                                                :timeout nil
+                                                                                :buffering :none))
+
+                         ;; reply GRANTED
+                         (write-socks4-reply client-stream #x5A dst-port dst-ip4)
+                         )
+                     (error (e)
+                       ;; reply REJECTED and stop
+                       (declare (ignore e))
+                       (write-socks4-reply client-stream #x5B dst-port dst-ip4)))
+
+                   )
+                  (t
+                   ;; VBIND no managed
+                   (write-socks4-reply client-stream #x5B dst-port dst-ip4)
+                   (return-from handle-client nil)))))
+
+             
+             ((eq *role* :p1)
+              (multiple-value-bind (cd dst-port dst-host dst-ip4 userid)
+                  (parse-socks4-request client-stream)
+                (declare (ignore userid))
+                (unless (= cd #x01)
+                  (write-socks4-reply client-stream #x5B dst-port dst-ip4)
+                  (return-from handle-client nil))
+
+                ;; 1) se connecter à P2 (target-host/port fournis au start-server)
+                (handler-case
+                    (progn
+                      (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
+                                                         :type :stream
+                                                         :protocol :tcp))
+                      (sb-bsd-sockets:socket-connect target-socket
+                                                     (sb-bsd-sockets:host-ent-address
+                                                      (sb-bsd-sockets:get-host-by-name dst-host))
+                                                     dst-port)
+
+                      (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
+                                                                             :input t :output t
+                                                                             :element-type '(unsigned-byte 8)
+                                                                             :timeout nil
+                                                                             :buffering :none))
+
+                      ;; reply GRANTED
+                      (write-socks4-reply client-stream #x5A dst-port dst-ip4)
+                      )
+                  (error (e)
+                    ;; reply REJECTED and stop
+                    (declare (ignore e))
+                    (write-socks4-reply client-stream #x5B dst-port dst-ip4)
+                    (return-from handle-client nil)))
+
+                ;; 2) handshake p1->p2 incluant host/port demandé
+                (let ((conn-id (make-conn-id)))
+                  (let ((ok (p1-handshake-with-p2 target-stream conn-id dst-host dst-port)))
+                    (unless ok
+                      (write-socks4-reply client-stream #x5B dst-port dst-ip4)
+                      (return-from handle-client nil)))
+
+                  ;; 3) global-handshake côté p1 (met à jour enc/dec)
+                  (multiple-value-bind (enc dec)
+                      (global-handshake *global-host* *global-port* "p1"
+                                        conn-id client-addr client-port)
+                    (setf enc-fn enc
+                          dec-fn dec))                 
+
+                  ;; 4) seulement maintenant : OK au client SOCKS4
+                  (write-socks4-reply client-stream #x5A dst-port dst-ip4)))) 
+
+
+             
+             ((eq *role* :p2)
+              (multiple-value-bind (conn-id dst-host dst-port)
+                  (p2-handshake-with-p1 client-stream)
+                (multiple-value-bind (enc dec)
+                    (global-handshake *global-host* *global-port* "p2"
+                                      conn-id client-addr client-port)
+                  (setf enc-fn enc
+                        dec-fn dec))
+                (handler-case
+                    (progn
+                      ;; 3) maintenant seulement : connexion backend
+                      (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
+                                                         :type :stream :protocol :tcp))
+                      (sb-bsd-sockets:socket-connect target-socket
+                                                     (sb-bsd-sockets:host-ent-address
+                                                      (sb-bsd-sockets:get-host-by-name dst-host))
+                                                     dst-port)
+                      (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
+                                                                             :input t :output t
+                                                                             :element-type '(unsigned-byte 8)
+                                                                             :timeout nil
+                                                                             :buffering :none))
+                      (write-ascii-line client-stream (format nil "ok ~A" conn-id))
+                      ))
+                (error ()
+                       (write-ascii-line client-stream (format nil "fail ~A" conn-id))
+                       (return-from handle-client nil))))
+             )
+           
+           ;;============================================ 
+
+           (labels
+               ((shutdown-target-output ()
+                  (when target-socket
+                    (ignore-errors
+                     (sb-bsd-sockets:socket-shutdown target-socket :direction :output))))
+                (shutdown-client-output ()
+                  (when client-socket
+                    (ignore-errors
+                     (sb-bsd-sockets:socket-shutdown client-socket :direction :output)))))
 
              (cond
+               ;; P1: enc vers p2, dec vers client
+               ((eq *role* :p1)
+                (let ((t1 (sb-thread:make-thread
+                           (lambda ()
+                             (forward-stream client-stream target-stream
+                                             :transform-fn enc-fn
+                                             :on-finish #'shutdown-target-output))))
+                      (t2 (sb-thread:make-thread
+                           (lambda ()
+                             (forward-stream target-stream client-stream
+                                             :transform-fn dec-fn
+                                             :on-finish #'shutdown-client-output)))))
+                  (sb-thread:join-thread t1)
+                  (sb-thread:join-thread t2)))
+
+               ;; P2: dec vers backend, enc vers p1
                ((eq *role* :p2)
-                ;; 1) handshake p1->p2 (consomme "bonjour ...")
-                (let ((conn-id (p2-handshake-with-p1 client-stream)))
-                  ;; 2) handshake avec serveur global AVANT de toucher au backend
-                  (multiple-value-bind (enc-fn dec-fn)
-                      (global-handshake *global-host* *global-port* "p2"
-                                        conn-id client-addr client-port))
-                  ;; To test enc/dec before and after, uncomment
-                  ;; (setf enc-fn (make-tap enc-fn "P2→P1-ENC")
-                  ;;       dec-fn (make-tap dec-fn "P2←P1-DEC"))
-                  ;; (setf enc-fn (make-tap-before-after enc-fn "P2→P1")
-                  ;;       dec-fn (make-tap-before-after dec-fn "P2←P1"))
-                  
-                  ;; 3) maintenant seulement : connexion backend
-                  (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
-                                                     :type :stream :protocol :tcp))
-                  (sb-bsd-sockets:socket-connect target-socket
-                                                 (sb-bsd-sockets:host-ent-address
-                                                  (sb-bsd-sockets:get-host-by-name target-host))
-                                                 target-port)
-                  (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
-                                                                         :input t :output t
-                                                                         :element-type '(unsigned-byte 8)
-                                                                         :timeout nil
-                                                                         :buffering :none))))
+                (let ((t1 (sb-thread:make-thread
+                           (lambda ()
+                             (forward-stream client-stream target-stream
+                                             :transform-fn dec-fn
+                                             :on-finish #'shutdown-target-output))))
+                      (t2 (sb-thread:make-thread
+                           (lambda ()
+                             (forward-stream target-stream client-stream
+                                             :transform-fn enc-fn
+                                             :on-finish #'shutdown-client-output)))))
+                  (sb-thread:join-thread t1)
+                  (sb-thread:join-thread t2)))
+
+               ;; ALONE: identity dans les deux sens
                (t
-                ;; connect au target (p2 ou backend)
-                (setf target-socket (make-instance 'sb-bsd-sockets:inet-socket
-                                                   :type :stream :protocol :tcp))
-                (sb-bsd-sockets:socket-connect target-socket
-                                               (sb-bsd-sockets:host-ent-address
-                                                (sb-bsd-sockets:get-host-by-name target-host))
-                                               target-port)
-                (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
-                                                                       :input t :output t
-                                                                       :element-type '(unsigned-byte 8)
-                                                                       :timeout nil
-                                                                       :buffering :none))
+                (let ((t1 (sb-thread:make-thread
+                           (lambda ()
+                             (forward-stream client-stream target-stream
+                                             :transform-fn enc-fn ;; #'identity
+                                             :on-finish #'shutdown-target-output))))
+                      (t2 (sb-thread:make-thread
+                           (lambda ()
+                             (forward-stream target-stream client-stream
+                                             :transform-fn dec-fn ;; #'identity
+                                             :on-finish #'shutdown-client-output)))))
+                  (sb-thread:join-thread t1)
+                  (sb-thread:join-thread t2))))))
+      
+      ;; LOG déconnexion + cleanup
+      (let ((duration (- (get-universal-time) start-time)))
+        (format t "[~A] DISCONNECT ~A:~A (duration ~As)~%"
+                (now) client-addr client-port duration))
 
-                (when (eq *role* :p1)
-                  ;; 1) handshake p1->p2
-                  (let ((conn-id (make-conn-id)))
-                    (p1-handshake-with-p2 target-stream conn-id)
-                    ;; 2) handshake global avant forward
-                    (multiple-value-bind (enc-fn dec-fn)
-                        (global-handshake *global-host* *global-port* "p1"
-                                          conn-id client-addr client-port))
-                    ;; To test enc/dec before and after, uncomment
-                    ;; (setf enc-fn (make-tap enc-fn "P2→P1-ENC")
-                    ;;       dec-fn (make-tap dec-fn "P2←P1-DEC"))
-                    ;; (setf enc-fn (make-tap-before-after enc-fn "P1→P2")
-                    ;;       dec-fn (make-tap-before-after dec-fn "P1←P2"))
-                    ))))
-             
-             (labels
-                 ((shutdown-target-output ()
-                    (when target-socket
-                      (ignore-errors
-                       (sb-bsd-sockets:socket-shutdown target-socket :direction :output))))
-                  (shutdown-client-output ()
-                    (when client-socket
-                      (ignore-errors
-                       (sb-bsd-sockets:socket-shutdown client-socket :direction :output)))))
-
-               (cond
-                 ;; P1: enc vers p2, dec vers client
-                 ((eq *role* :p1)
-                  (let ((t1 (sb-thread:make-thread
-                             (lambda ()
-                               (forward-stream client-stream target-stream
-                                               :transform-fn enc-fn
-                                               :on-finish #'shutdown-target-output))))
-                        (t2 (sb-thread:make-thread
-                             (lambda ()
-                               (forward-stream target-stream client-stream
-                                               :transform-fn dec-fn
-                                               :on-finish #'shutdown-client-output)))))
-                    (sb-thread:join-thread t1)
-                    (sb-thread:join-thread t2)))
-
-                 ;; P2: dec vers backend, enc vers p1
-                 ((eq *role* :p2)
-                  (let ((t1 (sb-thread:make-thread
-                             (lambda ()
-                               (forward-stream client-stream target-stream
-                                               :transform-fn dec-fn
-                                               :on-finish #'shutdown-target-output))))
-                        (t2 (sb-thread:make-thread
-                             (lambda ()
-                               (forward-stream target-stream client-stream
-                                               :transform-fn enc-fn
-                                               :on-finish #'shutdown-client-output)))))
-                    (sb-thread:join-thread t1)
-                    (sb-thread:join-thread t2)))
-
-                 ;; ALONE: identity dans les deux sens
-                 (t
-                  (let ((t1 (sb-thread:make-thread
-                             (lambda ()
-                               (forward-stream client-stream target-stream
-                                               :transform-fn enc-fn ;; #'identity
-                                               :on-finish #'shutdown-target-output))))
-                        (t2 (sb-thread:make-thread
-                             (lambda ()
-                               (forward-stream target-stream client-stream
-                                               :transform-fn dec-fn ;; #'identity
-                                               :on-finish #'shutdown-client-output)))))
-                    (sb-thread:join-thread t1)
-                    (sb-thread:join-thread t2))))))
-        
-        ;; LOG déconnexion + cleanup
-        (let ((duration (- (get-universal-time) start-time)))
-          (format t "[~A] DISCONNECT ~A:~A (duration ~As)~%"
-                  (now) client-addr client-port duration))
-
-        ;; fermer streams d'abord, puis sockets
-        (safe-close client-stream)
-        (safe-close target-stream)
-        (safe-close client-socket)
-        (safe-close target-socket)))))
+      ;; fermer streams d'abord, puis sockets
+      (safe-close client-stream)
+      (safe-close target-stream)
+      (safe-close client-socket)
+      (safe-close target-socket))))
+;; )

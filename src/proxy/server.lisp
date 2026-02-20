@@ -35,11 +35,13 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
          (handler-case
              (multiple-value-bind (client-socket client-addr client-port)
                  (sb-bsd-sockets:socket-accept server)
-               (format t "[~A] CONNECT  ~A:~A -> ~A:~A (role=~A)~%"
+               
+               (format t "[~A] CONNECT  ~A:~A (role=~A)~@[ -> ~A:~A~]~%"
                        (now)
                        client-addr client-port
-                       target-host target-port
-                       *role*)
+                       *role*
+                       target-host target-port)
+               
                ;; Un thread par client
                (sb-thread:make-thread
                 (lambda ()
@@ -66,13 +68,12 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
 ;; lsof -i :<listen-port>
 ;; kill -9 <PID>
 ;;
-;;./build/yano-frontend-bin
-;; ./build/yano-proxy-bin 45000 "127.0.0.1" 45001 "0.0.0.0" "client"
-;; ./build/yano-proxy-bin 45001 "192.188.200.55" 80 "0.0.0.0" "server"
-;; ./build/yano-backend-bin 9000 "http://192.188.200.55"
 
 (defun start-server (listen-port target-host target-port global-host global-port &key (listen-host "0.0.0.0") (role :alone))
-  "Démarre le proxy TCP forward."
+  "Démarre le proxy. Pour SOCKS4:
+   - :alone => target-host/port NIL (dest fournie par le client)
+   - :p1    => target-host/port = adresse de p2
+   - :p2    => target-host/port NIL (dest fournie par p1 via handshake)"
   (when *server-running*
     (error "Server already running"))
 
@@ -83,6 +84,27 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
         (etypecase role
           (keyword role)
           (string (intern (string-upcase role) :keyword))))
+
+  ;;===============================================
+
+  (cond
+    ((eq *role* :alone)
+     (when (or target-host target-port)
+       (format t "[~A] WARN: :alone ignores target-host/port (SOCKS4 picks destination from client)~%"
+               (now))
+       (setf target-host nil
+             target-port nil)))
+    ((eq *role* :p1)
+     (unless (and target-host target-port)
+       (error ":p1 requires target-host/target-port (this is the address of p2)")))
+    ((eq *role* :p2)
+     (when (or target-host target-port)
+       (format t "[~A] WARN: :p2 ignores target-host/port (destination provided by p1 handshake)~%"
+               (now))
+       (setf target-host nil target-port nil))))
+  
+  ;;===============================================
+
   
   (let ((server (make-instance 'sb-bsd-sockets:inet-socket
                                :type :stream

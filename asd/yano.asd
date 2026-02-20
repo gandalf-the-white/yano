@@ -21,6 +21,7 @@
                   :components
                   ((:file "package")
                    (:file "crypto")
+                   (:file "socks")
                    (:file "handshake")
                    (:file "handle")
                    (:file "server")))

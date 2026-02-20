@@ -29,6 +29,14 @@
       (error "Invalid port: ~a (must be 1..65535)" n))
     n))
 
+(defun nil-string->nil (s)
+  (if (and s (string-equal s "nil")) nil s))
+
+(defun parse-maybe-port (s)
+  (let ((s (nil-string->nil s)))
+    (when s
+      (parse-port s))))
+
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
     (unless (and (>= (length args) 5) (<= (length args) 7))
@@ -36,8 +44,10 @@
               "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> <global-host> <global-port> [listen-host] [role]~%")
       (sb-ext:exit :code 1))
     (let* ((listen-port (parse-integer (first args)))
-           (target-host (second args))
-           (target-port (parse-integer (third args)))
+           (target-host (nil-string->nil (second args)))
+           (target-port (parse-maybe-port (third args)))
+           ;; (target-host (second args))
+           ;; (target-port (parse-integer (third args)))
            (global-host (fourth args))
            (global-port (parse-integer (fifth args)))
            (listen-host (if (<= (length args) 5)

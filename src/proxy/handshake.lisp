@@ -44,25 +44,28 @@
           (random most-positive-fixnum)))
 
 ;; run by p1
-(defun p1-handshake-with-p2 (target-stream conn-id)
-  (write-ascii-line target-stream (format nil "bonjour ~A" conn-id))
+(defun p1-handshake-with-p2 (target-stream conn-id host port)
+  (write-ascii-line target-stream (format nil "bonjour ~A ~A ~D" conn-id host port))
   (let ((line (sb-ext:with-timeout 3  ; 3s
                 (read-ascii-line target-stream))))
-    (unless (string= line (format nil "ok ~A" conn-id))
-      (error "Bad handshake from p2: ~S" line))))
+    (cond
+      ((string= line (format nil "ok ~A" conn-id)) t)
+      ((string= line (format nil "fail ~A" conn-id)) nil)
+      (t (error "Bad handshake from p2: ~S" line)))))
 
 ;; run by p2
 (defun p2-handshake-with-p1 (client-stream)
   (let* ((line (sb-ext:with-timeout 3 
-                 (read-ascii-line client-stream)))
-         ;; attend "bonjour <conn-id>"
-         (parts (uiop:split-string line :separator " ")))
-    (unless (and (= (length parts) 2)
-                 (string= (first parts) "bonjour"))
-      (error "Unexpected handshake from p1: ~S" line))
-    (let ((conn-id (second parts)))
-      (write-ascii-line client-stream (format nil "ok ~A" conn-id))
-      conn-id)))
+                 (read-ascii-line client-stream))))
+    ;; attend "bonjour <conn-id>"
+    (let ((parts (uiop:split-string line :separator " ")))
+      (unless (and (= (length parts) 4)
+                   (string= (first parts) "bonjour"))
+        (error "Unexpected handshake from p1: ~S" line))
+      (values (second parts)                 ;; conn-id
+              (third parts)                  ;; host
+              (parse-integer (fourth parts)) ;; port
+              ))))
 
 (defun parse-global-reply-fctn (line)
   "LINE: \"ok not\" ou \"ok xor 42\".
