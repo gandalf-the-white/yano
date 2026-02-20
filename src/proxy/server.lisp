@@ -61,7 +61,7 @@ Sort proprement quand *server-running* passe à NIL ou quand SERVER est fermé."
            (sb-bsd-sockets:socket-error () (return))
            (error (e)
              (format t "[~A] ACCEPT-ERROR ~A~%" (now) e))))
-    (%safe-close server)))
+    (safe-close server)))
 
 ;; lsof -i :<listen-port>
 ;; kill -9 <PID>
