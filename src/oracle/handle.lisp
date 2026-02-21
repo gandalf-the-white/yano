@@ -53,8 +53,8 @@
              (format t "[GLOBAL] recv: ~S~%" line)
 
              (if (authorize-line-p line)
-                 (write-ascii-line s "ok idt")
-                 ;; (write-ascii-line s "ok not")
+                 ;; (write-ascii-line s "ok idt")
+                 (write-ascii-line s "ok not")
                  ;; (write-ascii-line s "ok xor 42")
                  ;; (write-ascii-line s "deny")
                  )))
