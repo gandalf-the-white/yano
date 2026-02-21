@@ -147,7 +147,7 @@
                                                      p2-port)
 
                       (format t "[~A] P1 connected-to ~A:~A~%"
-                              (now) dst-host dst-port)
+                              (now) p2-host p2-port)
 
                       (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
                                                                              :input t :output t
