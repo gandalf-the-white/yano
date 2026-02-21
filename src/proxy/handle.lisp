@@ -116,9 +116,8 @@
                      (error (e)
                        ;; reply REJECTED and stop
                        (declare (ignore e))
-                       (write-socks4-reply client-stream #x5B dst-port dst-ip4)))
-
-                   )
+                       (write-socks4-reply client-stream #x5B dst-port dst-ip4)
+                       (return-from handle-client nil))))
                   (t
                    ;; VBIND no managed
                    (write-socks4-reply client-stream #x5B dst-port dst-ip4)
@@ -143,6 +142,9 @@
                                                      (sb-bsd-sockets:host-ent-address
                                                       (sb-bsd-sockets:get-host-by-name dst-host))
                                                      dst-port)
+
+                      (format t "[~A] P1 connected-to ~A:~A~%"
+                              (now) dst-host dst-port)
 
                       (setf target-stream (sb-bsd-sockets:socket-make-stream target-socket
                                                                              :input t :output t
