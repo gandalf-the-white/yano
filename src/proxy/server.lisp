@@ -19,6 +19,8 @@
 (defparameter *global-port* nil
   "Define Oracle port")
 
+(defparameter *frontend-mode* :socks4) ; ou :transparent
+
 (defun handshake-mode (role)
   "Retourne deux valeurs: SEND? EXPECT?"
   (cond

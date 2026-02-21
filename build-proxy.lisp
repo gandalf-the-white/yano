@@ -39,9 +39,9 @@
 
 (defun parse-args ()
   (let ((args (cdr sb-ext:*posix-argv*)))
-    (unless (and (>= (length args) 5) (<= (length args) 7))
+    (unless (and (>= (length args) 5) (<= (length args) 8))
       (format *error-output*
-              "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> <global-host> <global-port> [listen-host] [role]~%")
+              "Usage: yano-proxy-bin <listen-port> <target-host> <target-port> <global-host> <global-port> [listen-host] [role] [mode]~%  mode: socks4|transparent (default socks4)~%")
       (sb-ext:exit :code 1))
     (let* ((listen-port (parse-integer (first args)))
            (target-host (nil-string->nil (second args)))
@@ -50,7 +50,7 @@
            ;; (target-port (parse-integer (third args)))
            (global-host (fourth args))
            (global-port (parse-integer (fifth args)))
-           (listen-host (if (<= (length args) 5)
+           (listen-host (if (>= (length args) 6)
                             "0.0.0.0"
                             (sixth args)))
            (role-str (if (= (length args) 7)
@@ -61,14 +61,25 @@
                        ((string= role-str "p2") :p2)
                        (t
                         (format *error-output*
-                                "Invalid role: ~A (expected: alone, p1, p2)\n"
-                                role-str)))))
-      (values listen-port target-host target-port global-host global-port listen-host role))))
+                                "Invalid role: ~A (expected: alone, p1, p2)~%"
+                                role-str)
+                        (sb-ext:exit :code 1))))
+           (mode-str (if (>= (length args) 8)
+                         (string-downcase (eighth args))
+                         "socks4"))
+           (mode (cond ((string= mode-str "socks4") :socks4)
+                       ((string= mode-str "transparent") :transparent)
+                       (t
+                        (format *error-output* "Invalid mode: ~A (expected: socks4, transparent)~%"
+                                mode-str)
+                        (sb-ext:exit :code 1)))))
+      (values listen-port target-host target-port global-host global-port listen-host role mode))))
 
 (defun main ()
-  (multiple-value-bind (listen-port target-host target-port global-host global-port listen-host role)
+  (multiple-value-bind (listen-port target-host target-port global-host global-port listen-host role mode)
       (parse-args)
     (let ((*package* (find-package :yano/proxy)))
+      (setf yano/proxy::*frontend-mode* mode)
       (yano/proxy::start-server listen-port target-host target-port global-host global-port
                                 :listen-host listen-host
                                 :role role)

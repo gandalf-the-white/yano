@@ -188,3 +188,36 @@ $ ./build/yano-backend-bin 9000 "http://192.188.200.55"
 #+begin_src shell
 $ ./build/yano-oracle-bin 9100
 #+end_src
+
+* Alternative Frontend
+** redsocks
+Just to adapt the proxy with no detection of sock4 protocol, redsocks solves this issue
+#+begin_src emacs-lisp
+base {
+  log_debug = off;
+  log_info = on;
+  daemon = on;
+  redirector = iptables;
+}
+
+redsocks {
+  local_ip = 127.0.0.1;
+  local_port = 12345;
+
+  ip = 127.0.0.1;      # ton p1 local
+  port = 45000;
+  type = socks4;
+}
+#+end_src
+and we start redsocks,
+#+begin_src shell
+$ redsocks -c /home/spike/redsocks.conf
+#+end_src
+** iptables
+redsocks is located between the client and the proxy. According to the previous configuration, we modify the iptables rules.
+#+begin_src emacs-lisp
+iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner spike -j RETURN
+iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner faye --dport 9000 -j REDIRECT --to-ports 12345
+#+end_src
+We don't forget the right uid disable in order to stop the "proxy to proxy"
+I suppose the proxy and redsocks started with /spike/ login and /faye/ to run the frontend.
