@@ -1,0 +1,14 @@
+{% extends "base.html" %} {% block title %}Video list{% endblock %} {% block
+content %}
+<h1 class="glow">Videos available</h1>
+
+<ul>
+  {% for video in videos %}
+  <li>
+    <a href="/video/{{ video.id }}"> {{ video.title }} </a>
+  </li>
+  {% empty %}
+  <li>No videos available</li>
+  {% endfor %}
+</ul>
+{% endblock %}

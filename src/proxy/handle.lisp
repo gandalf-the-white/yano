@@ -67,11 +67,14 @@
 (defun handle-client (client-socket client-addr client-port target-host target-port)
   ;; (multiple-value-bind (send-handshake expect-handshake)
   ;; (handshake-mode *role*)
-  (declare (ignore target-host target-port))
+  ;; (declare (ignore target-host target-port))
   (let ((start-time (get-universal-time))
         (client-stream nil)
         (target-socket nil)
         (target-stream nil)
+        ;; proxy 2 coordonnee
+        (p2-host target-host)
+        (p2-port target-port)
         ;; Transformation function (default to identity)
         (enc-fn #'identity)
         (dec-fn #'identity))
@@ -140,8 +143,8 @@
                                                          :protocol :tcp))
                       (sb-bsd-sockets:socket-connect target-socket
                                                      (sb-bsd-sockets:host-ent-address
-                                                      (sb-bsd-sockets:get-host-by-name dst-host))
-                                                     dst-port)
+                                                      (sb-bsd-sockets:get-host-by-name p2-host))
+                                                     p2-port)
 
                       (format t "[~A] P1 connected-to ~A:~A~%"
                               (now) dst-host dst-port)

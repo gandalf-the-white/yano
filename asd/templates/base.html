@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}Frontend Vidéo{% endblock %}</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        min-height: auto !important;
+      }
+    </style>
+    {% block head %}{% endblock %}
+  </head>
+
+  <body>
+    <header>
+      <nav>
+        <a href="/">Accueil</a>
+      </nav>
+    </header>
+
+    <main>
+      {% block content %}
+      <!-- contenu principal -->
+      {% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
