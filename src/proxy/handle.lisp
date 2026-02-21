@@ -65,9 +65,6 @@
     (ignore-errors (close x))))
 
 (defun handle-client (client-socket client-addr client-port target-host target-port)
-  ;; (multiple-value-bind (send-handshake expect-handshake)
-  ;; (handshake-mode *role*)
-  ;; (declare (ignore target-host target-port))
   (let ((start-time (get-universal-time))
         (client-stream nil)
         (target-socket nil)
@@ -86,9 +83,6 @@
                                                     :element-type '(unsigned-byte 8)
                                                     :timeout nil
                                                     :buffering :none))
-
-
-           ;;============================================
 
            (cond 
              ((eq *role* :alone)
@@ -156,7 +150,7 @@
                                                                              :buffering :none))
 
                       ;; reply GRANTED
-                      (write-socks4-reply client-stream #x5A dst-port dst-ip4)
+                      ;; (write-socks4-reply client-stream #x5A dst-port dst-ip4)
                       )
                   (error (e)
                     ;; reply REJECTED and stop
@@ -206,14 +200,12 @@
                                                                              :timeout nil
                                                                              :buffering :none))
                       (write-ascii-line client-stream (format nil "ok ~A" conn-id))
-                      ))
-                (error ()
-                       (write-ascii-line client-stream (format nil "fail ~A" conn-id))
-                       (return-from handle-client nil))))
+                      )
+                  (error ()
+                    (write-ascii-line client-stream (format nil "fail ~A" conn-id))
+                    (return-from handle-client nil)))))
              )
            
-           ;;============================================ 
-
            (labels
                ((shutdown-target-output ()
                   (when target-socket
@@ -280,4 +272,3 @@
       (safe-close target-stream)
       (safe-close client-socket)
       (safe-close target-socket))))
-;; )
