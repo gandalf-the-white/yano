@@ -62,8 +62,7 @@ spec:
             - "8000"
             - "http://backend:9000"
         - name: redsocks
-          image: ghcr.io/semigodking/redsocks:latest # exemple, remplace par ton image
-          # Beaucoup d'images attendent: redsocks -c /etc/redsocks.conf
+          image: ghcr.io/semigodking/redsocks:latest
           command: ["redsocks", "-c", "/etc/redsocks/redsocks.conf"]
           volumeMounts:
             - name: redsocks-config

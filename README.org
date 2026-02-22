@@ -164,7 +164,7 @@ $ ./build/yano-frontend-bin 8000 "http://127.0.0.1:45000"
 $ ./build/yano-backend-bin 9000 "http://192.188.200.55"
 #+end_src
 Et voila..
-* New Version
+* New Version in VM
 Just for proxies
 ** Proxy
 The P1 proxy
@@ -213,6 +213,7 @@ and we start redsocks,
 #+begin_src shell
 $ redsocks -c /home/spike/redsocks.conf
 #+end_src
+in my case, as spike login
 ** iptables
 redsocks is located between the client and the proxy. According to the previous configuration, we modify the iptables rules.
 #+begin_src emacs-lisp
@@ -221,3 +222,35 @@ iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner faye --dport 9000 -j REDIR
 #+end_src
 We don't forget the right uid disable in order to stop the "proxy to proxy"
 I suppose the proxy and redsocks started with /spike/ login and /faye/ to run the frontend.
+If the redsocks user is different, we just have to adjust the rule. for example with the redsocks account.
+#+begin_src shell
+iptables -t nat -A OUTPUT -p tcp -m owner --uid-owner redsocks -j RETURN
+#+end_src
+** Proxy
+The P1 proxy
+#+begin_src shell
+$ ./build/yano-proxy-bin 45000 "192.188.200.212" 45001 "192.188.200.215" 9100 "0.0.0.0" "p1"
+#+end_src
+or
+#+begin_src shell
+$ ./build/yano-proxy-bin 45000 "192.188.200.212" 9000 "192.188.200.215" 9100 "0.0.0.0" "p1"
+#+end_src
+** Proxy
+The P2 proxy
+#+begin_src shell
+$ ./build/yano-proxy-bin 45001 nil nil "192.188.200.215" 9100 "0.0.0.0" "p2"
+#+end_src
+** Frontend
+with the /faye/ account
+#+begin_src shell
+$ ./build/yano-frontend-bin 8000 "http://192.188.200.212:9000"
+#+end_src
+** Backend
+#+begin_src shell
+$ ./build/yano-backend-bin 9000 "http://192.188.200.55"
+#+end_src
+** Oracle
+#+begin_src shell
+$ ./build/yano-oracle-bin 9100
+#+end_src
+
