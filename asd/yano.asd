@@ -7,8 +7,7 @@
                :djula
                :drakma
                :babel
-               :jonathan
-               :cffi)
+               :jonathan)
   :serial t
   :components ((:module "../src"
                 :components
