@@ -14,16 +14,6 @@ spec:
       labels:
         app: backend
     spec:
-      initContainers:
-        - name: iptables-config
-          image: alpine:latest
-          command: ["/bin/sh", "-c"]
-          securityContext:
-            capabilities:
-              add: ["NET_ADMIN"]
-          args:
-            - "apk add --no-cache iptables;
-              iptables -t nat -I PREROUTING 1 -p tcp -m addrtype --dst-type LOCAL --dport 9000 -j REDIRECT --to-ports 45001"
       containers:
         - name: backend
           image: gandalfthewhite/cl-backend:latest
@@ -62,4 +52,18 @@ spec:
     - protocol: TCP
       port: 9000
       targetPort: 9000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-proxy
+  namespace: bebop
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 45001
+      targetPort: 45001
   type: ClusterIP
