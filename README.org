@@ -254,3 +254,19 @@ $ ./build/yano-backend-bin 9000 "http://192.188.200.55"
 $ ./build/yano-oracle-bin 9100
 #+end_src
 
+* Presentation
+** Why
+to be independent 
+** How
+Homemade just to do by myself
+** What
+Program the less significant object
+** Summary
++ Create a proxy to respond as accurately as possible to the patent
++ Be as agnostic as possible
++ Scenario for cataloging and watching videos
++ Explore two areas of use
++ Explain the process step by step
++ Innovate in the encoding function in an alternative way
++ Highlight flexibility
++ Improve for the next step 

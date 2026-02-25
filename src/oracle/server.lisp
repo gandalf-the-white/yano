@@ -56,11 +56,13 @@
 
 (defun stop-server ()
   "Arrête le serveur global."
-  (when *global-server-running*
-    (setf *global-server-running* nil)
-    ;; Ferme le socket serveur → débloque socket-accept
-    (when *global-server-socket*
-      (ignore-errors (close *global-server-socket*))
-      (setf *global-server-socket* nil))
-    (format t "[GLOBAL] stopped~%")
-    t))
+  (if (not *global-server-running*)
+      nil
+      (progn
+        (setf *global-server-running* nil)
+        ;; Ferme le socket serveur → débloque socket-accept
+        (when *global-server-socket*
+          (ignore-errors (close *global-server-socket*))
+          (setf *global-server-socket* nil))
+        (format t "[GLOBAL] stopped~%")
+        t)))
