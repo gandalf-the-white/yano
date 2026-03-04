@@ -45,9 +45,9 @@ spec:
               add: ["NET_ADMIN"]
           env:
             - name: HTTP_PROXY
-              value: "http://p-goodway.fr:8080"
+              value: "${PROXY}"
             - name: HTTPS_PROXY
-              value: "http://p-goodway.fr:8080"
+              value: "${PROXY}"
             - name: NO_PROXY
               value: "localhost,127.0.0.1,.svc,.cluster.local"
           args:
