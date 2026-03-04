@@ -43,6 +43,13 @@ spec:
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
+          env:
+            - name: HTTP_PROXY
+              value: "http://p-goodway.fr:8080"
+            - name: HTTPS_PROXY
+              value: "http://p-goodway.fr:8080"
+            - name: NO_PROXY
+              value: "localhost,127.0.0.1,.svc,.cluster.local"
           args:
             - "apk add --no-cache iptables;
 
