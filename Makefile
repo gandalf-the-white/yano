@@ -5,7 +5,8 @@ TAG      		?= latest
 DOCKERFILE_DIR 	?= docker
 DEPLOY			?= namespace frontend backend oracle gateway httproute
 UNDEPLOY		?= httproute gateway oracle backend frontend namespace
-PROXY			?= http://p-goodway.fr:8080
+PROXY			?= 
+# PROXY			?= http://p-goodway.fr:8080
 
 .PHONY: all build push clean check-user
 
@@ -37,14 +38,14 @@ deploy:
 	@set -e; \
     for img in $(DEPLOY); do \
 		echo "==> Deploy $$img.yml"; \
-		PROXY=$(PROXY) envsubst < manifests/$$img.yaml | kubectl apply -f - ; \
+		PROXY=$(PROXY) envsubst < manifests/$$img.yml | kubectl apply -f - ; \
     done
 
 undeploy:
 	@set -e; \
     for img in $(UNDEPLOY); do \
 		echo "==> Undeploy $$img.yml"; \
-        kubectl delete -f "manifests/$$img.yml" ; \
+		PROXY=$(PROXY) envsubst < manifests/$$img.yml | kubectl delete -f - ; \
     done
 
 clean:
